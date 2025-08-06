@@ -92,6 +92,7 @@ extern "C" {
 
 
 #define AUDIO_OUT_PACKET                              (uint16_t)(((USBD_AUDIO_FREQ * 2U * 2U) / 1000U))
+#define AUDIO_IN_PACKET                               3U
 #define AUDIO_DEFAULT_VOLUME                          70U
 
 /* Number of sub-packets in the audio transfer buffer. You can modify this value but always make sure
