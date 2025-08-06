@@ -40,17 +40,24 @@ add_subdirectory(cmake/stm32cubemx)
 # Link directories setup
 target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined library search paths
-    ./Middlewares/ST/ARM/DSP/Lib
+    ./DSP/Lib
 )
 
 # Add sources to executable
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user sources here
+    ./USB/Src/usbd_core.c
+    ./USB/Src/usbd_ctlreq.c
+    ./USB/Src/usbd_ioreq.c
+    ./USB/Src/usbd_conf.c
+    ./USB/Src/usbd_desc.c
+    ./USB/Src/usbd_audio.c
 )
 
 # Add include paths
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined include paths
+    ./USB/Inc
 )
 
 # Add project symbols (macros)
