@@ -1,8 +1,8 @@
 /**
   ******************************************************************************
-  * @file    usbd_desc.h
+  * @file    usbd_desc_template.h
   * @author  MCD Application Team
-  * @brief   Header for usbd_desc.c module
+  * @brief   Header for usbd_desc_template.c module
   ******************************************************************************
   * @attention
   *
@@ -17,8 +17,8 @@
   */
 
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __USBD_DESC_H
-#define __USBD_DESC_H
+#ifndef __USBD_DESC_TEMPLATE_H
+#define __USBD_DESC_TEMPLATE_H
 
 /* Includes ------------------------------------------------------------------*/
 #include "usbd_def.h"
@@ -55,6 +55,7 @@
 
 /* Exported macro ------------------------------------------------------------*/
 /* Exported functions ------------------------------------------------------- */
-extern USBD_DescriptorsTypeDef AUDIO_Desc;
+extern USBD_DescriptorsTypeDef AUDIO_Desc; /* Replace 'XXX_Desc' with your active USB device class, ex: HID_Desc */
 
-#endif /* __USBD_DESC_H*/
+#endif /* __USBD_DESC_TEMPLATE_H*/
+

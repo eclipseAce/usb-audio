@@ -1,8 +1,10 @@
 /**
   ******************************************************************************
-  * @file    usbd_desc.c
+  * @file    usbd_desc_template.c
   * @author  MCD Application Team
   * @brief   This file provides the USBD descriptors and string formatting method.
+  *          This template should be copied to the user folder,
+  *          renamed and customized following user needs.
   ******************************************************************************
   * @attention
   *
@@ -24,15 +26,15 @@
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
 #define USBD_VID                      0x0483
-#define USBD_PID                      0x5740
-#define USBD_LANGID_STRING            0x409
-#define USBD_MANUFACTURER_STRING      "STMicroelectronics"
-#define USBD_PRODUCT_FS_STRING        "STM32 Audio Class"
-#define USBD_CONFIGURATION_FS_STRING  "AUDIO Config"
-#define USBD_INTERFACE_FS_STRING      "AUDIO Interface"
-#define USBD_PRODUCT_HS_STRING        "STM32 Audio Class"
-#define USBD_CONFIGURATION_HS_STRING  "AUDIO Config"
-#define USBD_INTERFACE_HS_STRING      "AUDIO Interface"
+#define USBD_PID                      0xaaaa  /* Replace '0xaaaa' with your device product ID */
+#define USBD_LANGID_STRING            1033   /* Replace '0xbbb' with your device language ID */
+#define USBD_MANUFACTURER_STRING      "STMicroelectronics" /* Add your manufacturer string */
+#define USBD_PRODUCT_HS_STRING        "STM32 Audio Class" /* Add your product High Speed string */
+#define USBD_PRODUCT_FS_STRING        "STM32 Audio Class" /* Add your product Full Speed string */
+#define USBD_CONFIGURATION_HS_STRING  "Audio Config" /* Add your configuration High Speed string */
+#define USBD_INTERFACE_HS_STRING      "Audio Interface" /* Add your Interface High Speed string */
+#define USBD_CONFIGURATION_FS_STRING  "Audio Config" /* Add your configuration Full Speed string */
+#define USBD_INTERFACE_FS_STRING      "Audio Interface" /* Add your Interface Full Speed string */
 
 /* Private macro -------------------------------------------------------------*/
 /* Private function prototypes -----------------------------------------------*/

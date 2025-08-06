@@ -24,6 +24,7 @@
 #include "usbd_core.h"
 #include "usbd_desc.h"
 #include "usbd_audio.h"
+#include "usbd_audio_if.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -385,11 +386,15 @@ static void MX_USB_OTG_FS_PCD_Init(void)
   HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_FS, 0, 0x40);
   HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_FS, 1, 0x80);
 
-  if (USBD_Init(&hUsbDeviceFS, &AUDIO_Desc, DEVICE_FS) != USBD_OK)
+  if (USBD_Init(&hUsbDeviceFS, &AUDIO_Desc, 0) != USBD_OK)
   {
     Error_Handler();
   }
   if (USBD_RegisterClass(&hUsbDeviceFS, &USBD_AUDIO) != USBD_OK)
+  {
+    Error_Handler();
+  }
+  if (USBD_AUDIO_RegisterInterface(&hUsbDeviceFS, &USBD_AUDIO_Template_fops) != USBD_OK)
   {
     Error_Handler();
   }

@@ -27,7 +27,21 @@ extern "C" {
 /* Includes ------------------------------------------------------------------*/
 #include  "usbd_ioreq.h"
 
+/** @addtogroup STM32_USB_DEVICE_LIBRARY
+  * @{
+  */
+
+/** @defgroup USBD_AUDIO
+  * @brief This file is the Header file for usbd_audio.c
+  * @{
+  */
+
+
+/** @defgroup USBD_AUDIO_Exported_Defines
+  * @{
+  */
 #ifndef USBD_AUDIO_FREQ
+/* AUDIO Class Config */
 #define USBD_AUDIO_FREQ                               48000U
 #endif /* USBD_AUDIO_FREQ */
 
@@ -43,10 +57,11 @@ extern "C" {
 #define AUDIO_FS_BINTERVAL                            0x01U
 #endif /* AUDIO_FS_BINTERVAL */
 
+#ifndef AUDIO_OUT_EP
 #define AUDIO_OUT_EP                                  0x01U
-#define AUDIO_IN_EP                                   0x81U
+#endif /* AUDIO_OUT_EP */
 
-#define USB_AUDIO_CONFIG_DESC_SIZ                     0x77U
+#define USB_AUDIO_CONFIG_DESC_SIZ                     0x6DU
 #define AUDIO_INTERFACE_DESC_SIZE                     0x09U
 #define USB_AUDIO_DESC_SIZ                            0x09U
 #define AUDIO_STANDARD_ENDPOINT_DESC_SIZE             0x09U
@@ -75,7 +90,6 @@ extern "C" {
 #define AUDIO_STREAMING_INTERFACE_DESC_SIZE           0x07U
 
 #define AUDIO_CONTROL_MUTE                            0x0001U
-#define AUDIO_CONTROL_VOLUMN                          0x0002U
 
 #define AUDIO_FORMAT_TYPE_I                           0x01U
 #define AUDIO_FORMAT_TYPE_III                         0x03U
@@ -92,7 +106,6 @@ extern "C" {
 
 
 #define AUDIO_OUT_PACKET                              (uint16_t)(((USBD_AUDIO_FREQ * 2U * 2U) / 1000U))
-#define AUDIO_IN_PACKET                               3U
 #define AUDIO_DEFAULT_VOLUME                          70U
 
 /* Number of sub-packets in the audio transfer buffer. You can modify this value but always make sure
@@ -117,7 +130,14 @@ typedef enum
   AUDIO_OFFSET_FULL,
   AUDIO_OFFSET_UNKNOWN,
 } AUDIO_OffsetTypeDef;
+/**
+  * @}
+  */
 
+
+/** @defgroup USBD_CORE_Exported_TypesDefinitions
+  * @{
+  */
 typedef struct
 {
   uint8_t cmd;
@@ -258,15 +278,55 @@ typedef struct
   uint16_t          wLockDelay;
 } __PACKED USBD_SpeakerEndStDescTypeDef;
 
+/**
+  * @}
+  */
+
+
+
+/** @defgroup USBD_CORE_Exported_Macros
+  * @{
+  */
+
+/**
+  * @}
+  */
+
+/** @defgroup USBD_CORE_Exported_Variables
+  * @{
+  */
+
 extern USBD_ClassTypeDef USBD_AUDIO;
 #define USBD_AUDIO_CLASS &USBD_AUDIO
+/**
+  * @}
+  */
+
+/** @defgroup USB_CORE_Exported_Functions
+  * @{
+  */
+uint8_t USBD_AUDIO_RegisterInterface(USBD_HandleTypeDef *pdev,
+                                     USBD_AUDIO_ItfTypeDef *fops);
+
+void USBD_AUDIO_Sync(USBD_HandleTypeDef *pdev, AUDIO_OffsetTypeDef offset);
 
 #ifdef USE_USBD_COMPOSITE
 uint32_t USBD_AUDIO_GetEpPcktSze(USBD_HandleTypeDef *pdev, uint8_t If, uint8_t Ep);
 #endif /* USE_USBD_COMPOSITE */
+
+/**
+  * @}
+  */
 
 #ifdef __cplusplus
 }
 #endif
 
 #endif  /* __USB_AUDIO_H */
+/**
+  * @}
+  */
+
+/**
+  * @}
+  */

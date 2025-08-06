@@ -1,12 +1,12 @@
 /**
   ******************************************************************************
-  * @file           : usbd_conf.h
-  * @version        : v1.0_Cube
-  * @brief          : Header for usbd_conf.c file.
+  * @file    usbd_conf_template.h
+  * @author  MCD Application Team
+  * @brief   Header file for the usbd_conf_template.c file
   ******************************************************************************
   * @attention
   *
-  * Copyright (c) 2025 STMicroelectronics.
+  * Copyright (c) 2015 STMicroelectronics.
   * All rights reserved.
   *
   * This software is licensed under terms that can be found in the LICENSE file
@@ -17,39 +17,47 @@
   */
 
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __USBD_CONF__H__
-#define __USBD_CONF__H__
+#ifndef __USBD_CONF_TEMPLATE_H
+#define __USBD_CONF_TEMPLATE_H
 
 #ifdef __cplusplus
- extern "C" {
+extern "C" {
 #endif
 
 /* Includes ------------------------------------------------------------------*/
+#include "stm32h7xx.h"  /* replace 'stm32xxx' with your HAL driver header filename, ex: stm32f4xx.h */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "main.h"
-#include "stm32h7xx.h"
-#include "stm32h7xx_hal.h"
+
+/** @addtogroup STM32_USB_DEVICE_LIBRARY
+  * @{
+  */
+
+/** @defgroup USBD_CONF
+  * @brief USB device low level driver configuration file
+  * @{
+  */
+
+/** @defgroup USBD_CONF_Exported_Defines
+  * @{
+  */
 
 #define USBD_MAX_NUM_INTERFACES                     1U
 #define USBD_MAX_NUM_CONFIGURATION                  1U
 #define USBD_MAX_STR_DESC_SIZ                       0x100U
 #define USBD_SELF_POWERED                           1U
 #define USBD_DEBUG_LEVEL                            2U
-#define USBD_LPM_ENABLED                            1U
 
 /* AUDIO Class Config */
-#define USBD_AUDIO_FREQ                             96000U
+#define USBD_AUDIO_FREQ                             48000U
 
-/****************************************/
-/* #define for FS and HS identification */
-#define DEVICE_FS 		0
-#define DEVICE_HS 		1
+/** @defgroup USBD_Exported_Macros
+  * @{
+  */
 
 /* Memory management macros make sure to use static memory allocation */
 /** Alias for memory allocation. */
-
 #define USBD_malloc         (void *)USBD_static_malloc
 
 /** Alias for memory release. */
@@ -65,37 +73,90 @@
 #define USBD_Delay          HAL_Delay
 
 /* DEBUG macros */
-
-#if (USBD_DEBUG_LEVEL > 0)
-#define USBD_UsrLog(...)    printf(__VA_ARGS__);\
-                            printf("\n");
+#if (USBD_DEBUG_LEVEL > 0U)
+#define  USBD_UsrLog(...)   do { \
+                                 printf(__VA_ARGS__); \
+                                 printf("\n"); \
+                               } while (0)
 #else
-#define USBD_UsrLog(...)
+#define USBD_UsrLog(...) do {} while (0)
 #endif /* (USBD_DEBUG_LEVEL > 0U) */
 
-#if (USBD_DEBUG_LEVEL > 1)
+#if (USBD_DEBUG_LEVEL > 1U)
 
-#define USBD_ErrLog(...)    printf("ERROR: ");\
-                            printf(__VA_ARGS__);\
-                            printf("\n");
+#define  USBD_ErrLog(...) do { \
+                               printf("ERROR: ") ; \
+                               printf(__VA_ARGS__); \
+                               printf("\n"); \
+                             } while (0)
 #else
-#define USBD_ErrLog(...)
+#define USBD_ErrLog(...) do {} while (0)
 #endif /* (USBD_DEBUG_LEVEL > 1U) */
 
-#if (USBD_DEBUG_LEVEL > 2)
-#define USBD_DbgLog(...)    printf("DEBUG : ");\
-                            printf(__VA_ARGS__);\
-                            printf("\n");
+#if (USBD_DEBUG_LEVEL > 2U)
+#define  USBD_DbgLog(...)   do { \
+                                 printf("DEBUG : ") ; \
+                                 printf(__VA_ARGS__); \
+                                 printf("\n"); \
+                               } while (0)
 #else
-#define USBD_DbgLog(...)
+#define USBD_DbgLog(...) do {} while (0)
 #endif /* (USBD_DEBUG_LEVEL > 2U) */
 
+/**
+  * @}
+  */
+
+
+
+/**
+  * @}
+  */
+
+
+/** @defgroup USBD_CONF_Exported_Types
+  * @{
+  */
+/**
+  * @}
+  */
+
+
+/** @defgroup USBD_CONF_Exported_Macros
+  * @{
+  */
+/**
+  * @}
+  */
+
+/** @defgroup USBD_CONF_Exported_Variables
+  * @{
+  */
+/**
+  * @}
+  */
+
+/** @defgroup USBD_CONF_Exported_FunctionsPrototype
+  * @{
+  */
 /* Exported functions -------------------------------------------------------*/
 void *USBD_static_malloc(uint32_t size);
 void USBD_static_free(void *p);
+/**
+  * @}
+  */
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* __USBD_CONF__H__ */
+#endif /* __USBD_CONF_TEMPLATE_H */
+
+
+/**
+  * @}
+  */
+
+/**
+  * @}
+  */
