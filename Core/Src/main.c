@@ -24,7 +24,6 @@
 #include "usbd_core.h"
 #include "usbd_desc.h"
 #include "usbd_audio.h"
-#include "usbd_audio_if.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -56,6 +55,10 @@ PCD_HandleTypeDef hpcd_USB_OTG_FS;
 
 /* USER CODE BEGIN PV */
 USBD_HandleTypeDef hUsbDeviceFS;
+
+extern volatile uint16_t last_rd_samples;
+extern volatile uint16_t last_wr_samples;
+extern volatile uint16_t writable_samples;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -125,6 +128,12 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+    printf("rd=%5u, wr=%5u, writable=%5u\r\n",
+      last_rd_samples,
+      last_wr_samples,
+      writable_samples
+    );
+    HAL_Delay(10);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -202,7 +211,7 @@ void PeriphCommonClock_Config(void)
   */
   PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_SPI2|RCC_PERIPHCLK_SPI1;
   PeriphClkInitStruct.PLL2.PLL2M = 2;
-  PeriphClkInitStruct.PLL2.PLL2N = 125;
+  PeriphClkInitStruct.PLL2.PLL2N = 192;
   PeriphClkInitStruct.PLL2.PLL2P = 4;
   PeriphClkInitStruct.PLL2.PLL2Q = 2;
   PeriphClkInitStruct.PLL2.PLL2R = 2;
@@ -368,7 +377,7 @@ static void MX_USB_OTG_FS_PCD_Init(void)
   hpcd_USB_OTG_FS.Init.speed = PCD_SPEED_FULL;
   hpcd_USB_OTG_FS.Init.dma_enable = DISABLE;
   hpcd_USB_OTG_FS.Init.phy_itface = PCD_PHY_EMBEDDED;
-  hpcd_USB_OTG_FS.Init.Sof_enable = DISABLE;
+  hpcd_USB_OTG_FS.Init.Sof_enable = ENABLE;
   hpcd_USB_OTG_FS.Init.low_power_enable = DISABLE;
   hpcd_USB_OTG_FS.Init.lpm_enable = DISABLE;
   hpcd_USB_OTG_FS.Init.battery_charging_enable = DISABLE;
@@ -391,10 +400,6 @@ static void MX_USB_OTG_FS_PCD_Init(void)
     Error_Handler();
   }
   if (USBD_RegisterClass(&hUsbDeviceFS, &USBD_AUDIO) != USBD_OK)
-  {
-    Error_Handler();
-  }
-  if (USBD_AUDIO_RegisterInterface(&hUsbDeviceFS, &USBD_AUDIO_Template_fops) != USBD_OK)
   {
     Error_Handler();
   }
@@ -487,7 +492,14 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+int __io_getchar(void) {
+  return EOF;
+}
 
+int __io_putchar(int ch) {
+  HAL_UART_Transmit(&huart1, (uint8_t*)(&ch), 1, HAL_MAX_DELAY);
+  return 1;
+}
 /* USER CODE END 4 */
 
  /* MPU Configuration */

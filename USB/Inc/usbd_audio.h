@@ -27,19 +27,6 @@ extern "C" {
 /* Includes ------------------------------------------------------------------*/
 #include  "usbd_ioreq.h"
 
-/** @addtogroup STM32_USB_DEVICE_LIBRARY
-  * @{
-  */
-
-/** @defgroup USBD_AUDIO
-  * @brief This file is the Header file for usbd_audio.c
-  * @{
-  */
-
-
-/** @defgroup USBD_AUDIO_Exported_Defines
-  * @{
-  */
 #ifndef USBD_AUDIO_FREQ
 /* AUDIO Class Config */
 #define USBD_AUDIO_FREQ                               48000U
@@ -116,7 +103,7 @@ extern "C" {
 
 /* Number of sub-packets in the audio transfer buffer. You can modify this value but always make sure
   that it is an even number and higher than 3 */
-#define AUDIO_OUT_PACKET_NUM                          80U
+#define AUDIO_OUT_PACKET_NUM                          8U
 /* Total size of the audio transfer buffer */
 #define AUDIO_TOTAL_BUF_SIZE                          ((uint16_t)(AUDIO_OUT_PACKET * AUDIO_OUT_PACKET_NUM))
 
@@ -128,7 +115,6 @@ typedef enum
   AUDIO_CMD_STOP,
 } AUDIO_CMD_TypeDef;
 
-
 typedef enum
 {
   AUDIO_OFFSET_NONE = 0,
@@ -136,14 +122,7 @@ typedef enum
   AUDIO_OFFSET_FULL,
   AUDIO_OFFSET_UNKNOWN,
 } AUDIO_OffsetTypeDef;
-/**
-  * @}
-  */
 
-
-/** @defgroup USBD_CORE_Exported_TypesDefinitions
-  * @{
-  */
 typedef struct
 {
   uint8_t cmd;
@@ -163,18 +142,6 @@ typedef struct
   uint16_t wr_ptr;
   USBD_AUDIO_ControlTypeDef control;
 } USBD_AUDIO_HandleTypeDef;
-
-
-typedef struct
-{
-  int8_t (*Init)(uint32_t AudioFreq, uint32_t Volume, uint32_t options);
-  int8_t (*DeInit)(uint32_t options);
-  int8_t (*AudioCmd)(uint8_t *pbuf, uint32_t size, uint8_t cmd);
-  int8_t (*VolumeCtl)(uint8_t vol);
-  int8_t (*MuteCtl)(uint8_t cmd);
-  int8_t (*PeriodicTC)(uint8_t *pbuf, uint32_t size, uint8_t cmd);
-  int8_t (*GetState)(void);
-} USBD_AUDIO_ItfTypeDef;
 
 /*
  * Audio Class specification release 1.0
@@ -284,55 +251,15 @@ typedef struct
   uint16_t          wLockDelay;
 } __PACKED USBD_SpeakerEndStDescTypeDef;
 
-/**
-  * @}
-  */
-
-
-
-/** @defgroup USBD_CORE_Exported_Macros
-  * @{
-  */
-
-/**
-  * @}
-  */
-
-/** @defgroup USBD_CORE_Exported_Variables
-  * @{
-  */
-
 extern USBD_ClassTypeDef USBD_AUDIO;
 #define USBD_AUDIO_CLASS &USBD_AUDIO
-/**
-  * @}
-  */
-
-/** @defgroup USB_CORE_Exported_Functions
-  * @{
-  */
-uint8_t USBD_AUDIO_RegisterInterface(USBD_HandleTypeDef *pdev,
-                                     USBD_AUDIO_ItfTypeDef *fops);
-
-void USBD_AUDIO_Sync(USBD_HandleTypeDef *pdev, AUDIO_OffsetTypeDef offset);
 
 #ifdef USE_USBD_COMPOSITE
 uint32_t USBD_AUDIO_GetEpPcktSze(USBD_HandleTypeDef *pdev, uint8_t If, uint8_t Ep);
 #endif /* USE_USBD_COMPOSITE */
-
-/**
-  * @}
-  */
 
 #ifdef __cplusplus
 }
 #endif
 
 #endif  /* __USB_AUDIO_H */
-/**
-  * @}
-  */
-
-/**
-  * @}
-  */

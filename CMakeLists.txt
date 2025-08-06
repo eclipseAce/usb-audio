@@ -52,7 +52,6 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ./USB/Src/usbd_conf.c
     ./USB/Src/usbd_desc.c
     ./USB/Src/usbd_audio.c
-    ./USB/Src/usbd_audio_if.c
 )
 
 # Add include paths
