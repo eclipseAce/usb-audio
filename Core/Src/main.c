@@ -385,7 +385,7 @@ static void MX_USB_OTG_FS_PCD_Init(void)
   HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_FS, 0, 0x40);
   HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_FS, 1, 0x80);
 
-  if (USBD_Init(&hUsbDeviceFS, &FS_Desc, DEVICE_FS) != USBD_OK)
+  if (USBD_Init(&hUsbDeviceFS, &AUDIO_Desc, DEVICE_FS) != USBD_OK)
   {
     Error_Handler();
   }
