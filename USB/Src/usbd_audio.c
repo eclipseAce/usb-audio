@@ -216,24 +216,24 @@ __ALIGN_BEGIN static uint8_t USBD_AUDIO_CfgDesc[USB_AUDIO_CONFIG_DESC_SIZ] __ALI
   0x01,                                 /* wTerminalType AUDIO_TERMINAL_USB_STREAMING   0x0101 */
   0x01,
   0x00,                                 /* bAssocTerminal */
-  0x01,                                 /* bNrChannels */
-  0x00,                                 /* wChannelConfig 0x0000  Mono */
-  0x00,
+  0x02,                                 /* bNrChannels */
+  0x03, 0x00,                           /* wChannelConfig */
   0x00,                                 /* iChannelNames */
   0x00,                                 /* iTerminal */
   /* 12 byte*/
 
   /* USB Speaker Audio Feature Unit Descriptor */
-  0x09,                                 /* bLength */
+  0x0A,                                 /* bLength */
   AUDIO_INTERFACE_DESCRIPTOR_TYPE,      /* bDescriptorType */
   AUDIO_CONTROL_FEATURE_UNIT,           /* bDescriptorSubtype */
   AUDIO_OUT_STREAMING_CTRL,             /* bUnitID */
   0x01,                                 /* bSourceID */
   0x01,                                 /* bControlSize */
-  AUDIO_CONTROL_MUTE,                   /* bmaControls(0) */
-  0,                                    /* bmaControls(1) */
+  0 | AUDIO_CONTROL_MUTE, /* bmaControls(0) */
+  0,                      /* bmaControls(1) */
+  0,                      /* bmaControls(2) */
   0x00,                                 /* iTerminal */
-  /* 09 byte */
+  /* 10 byte */
 
   /* USB Speaker Output Terminal Descriptor */
   0x09,      /* bLength */
@@ -299,7 +299,7 @@ __ALIGN_BEGIN static uint8_t USBD_AUDIO_CfgDesc[USB_AUDIO_CONFIG_DESC_SIZ] __ALI
   AUDIO_STANDARD_ENDPOINT_DESC_SIZE,    /* bLength */
   USB_DESC_TYPE_ENDPOINT,               /* bDescriptorType */
   AUDIO_OUT_EP,                         /* bEndpointAddress 1 out endpoint */
-  USBD_EP_TYPE_ISOC,                    /* bmAttributes */
+  0x05,                                 /* bmAttributes */
   AUDIO_PACKET_SZE(USBD_AUDIO_FREQ),    /* wMaxPacketSize in Bytes (Freq(Samples)*2(Stereo)*2(HalfWord)) */
   AUDIO_FS_BINTERVAL,                   /* bInterval */
   0x00,                                 /* bRefresh */
@@ -578,6 +578,7 @@ static uint8_t *USBD_AUDIO_GetCfgDesc(uint16_t *length)
   return USBD_AUDIO_CfgDesc;
 }
 #endif /* USE_USBD_COMPOSITE  */
+
 /**
   * @brief  USBD_AUDIO_DataIn
   *         handle data IN Stage
@@ -624,6 +625,7 @@ static uint8_t USBD_AUDIO_EP0_RxReady(USBD_HandleTypeDef *pdev)
 
   return (uint8_t)USBD_OK;
 }
+
 /**
   * @brief  USBD_AUDIO_EP0_TxReady
   *         handle EP0 TRx Ready event
@@ -637,6 +639,7 @@ static uint8_t USBD_AUDIO_EP0_TxReady(USBD_HandleTypeDef *pdev)
   /* Only OUT control data are processed */
   return (uint8_t)USBD_OK;
 }
+
 /**
   * @brief  USBD_AUDIO_SOF
   *         handle SOF event
@@ -733,6 +736,7 @@ static uint8_t USBD_AUDIO_IsoINIncomplete(USBD_HandleTypeDef *pdev, uint8_t epnu
 
   return (uint8_t)USBD_OK;
 }
+
 /**
   * @brief  USBD_AUDIO_IsoOutIncomplete
   *         handle data ISO OUT Incomplete event
@@ -758,6 +762,7 @@ static uint8_t USBD_AUDIO_IsoOutIncomplete(USBD_HandleTypeDef *pdev, uint8_t epn
 
   return (uint8_t)USBD_OK;
 }
+
 /**
   * @brief  USBD_AUDIO_DataOut
   *         handle data OUT Stage
@@ -891,6 +896,7 @@ static uint8_t *USBD_AUDIO_GetDeviceQualifierDesc(uint16_t *length)
   return USBD_AUDIO_DeviceQualifierDesc;
 }
 #endif /* USE_USBD_COMPOSITE  */
+
 /**
   * @brief  USBD_AUDIO_RegisterInterface
   * @param  pdev: device instance
