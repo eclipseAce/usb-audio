@@ -385,52 +385,37 @@ static uint8_t USBD_AUDIO_Setup(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *
   USBD_StatusTypeDef ret = USBD_FAIL;
 
   haudio = (USBD_AUDIO_HandleTypeDef *)pdev->pClassDataCmsit[pdev->classId];
-
   if (haudio == NULL) {
     return (uint8_t)USBD_FAIL;
   }
 
-  if ((req->bmRequest & 0b01111111) == 0b00100001) {
-    /* Type: Class, Recipient: Interface */
+  if ((req->bmRequest & 0b01111111) == 0b00100001) { /* Type: Class, Recipient: Interface */
+    if (req->bmRequest == 0x01 && HIBYTE(req->wValue) == 0x01) { /* Request: SET_CUR, CS: MUTE_CONTROL */
 
-    if (req->bmRequest == 0x01 && HIBYTE(req->wValue) == 0x01) {
-      /* Request: SET_CUR, CS: MUTE_CONTROL */
+    } else if (req->bRequest == 0x01 && HIBYTE(req->wValue) == 0x02) { /* Request: SET_CUR, CS: VOLUMN_CONTROL */
 
-    } else if (req->bRequest == 0x01 && HIBYTE(req->wValue) == 0x02) {
-      /* Request: SET_CUR, CS: VOLUMN_CONTROL */
+    } else if (req->bRequest == 0x81 && HIBYTE(req->wValue) == 0x01) { /* Request: GET_CUR, CS: MUTE_CONTROL */
+     
+    } else if (req->bRequest == 0x81 && HIBYTE(req->wValue) == 0x02) { /* Request: GET_CUR, CS: VOLUMN_CONTROL */
 
-    } else if (req->bRequest == 0x81 && HIBYTE(req->wValue) == 0x01) {
-      /* Request: GET_CUR, CS: MUTE_CONTROL */
+    } else if (req->bRequest == 0x82 && HIBYTE(req->wValue) == 0x02) { /* Request: GET_MIN, CS: VOLUMN_CONTROL */
 
-    } else if (req->bRequest == 0x81 && HIBYTE(req->wValue) == 0x02) {
-      /* Request: GET_CUR, CS: VOLUMN_CONTROL */
+    } else if (req->bRequest == 0x83 && HIBYTE(req->wValue) == 0x02) { /* Request: GET_MAX, CS: VOLUMN_CONTROL */
 
-    } else if (req->bRequest == 0x82 && HIBYTE(req->wValue) == 0x02) {
-      /* Request: GET_MIN, CS: VOLUMN_CONTROL */
-
-    } else if (req->bRequest == 0x83 && HIBYTE(req->wValue) == 0x02) {
-      /* Request: GET_MAX, CS: VOLUMN_CONTROL */
-
-    } else if (req->bRequest == 0x84 && HIBYTE(req->wValue) == 0x02) {
-      /* Request: GET_RES, CS: VOLUMN_CONTROL */
+    } else if (req->bRequest == 0x84 && HIBYTE(req->wValue) == 0x02) { /* Request: GET_RES, CS: VOLUMN_CONTROL */
+      
     }
-  } else if ((req->bmRequest & 0b01100000) == 0b00000000) {
-    /* Type: Standard, Recipient: Any */
-
-    if (req->bRequest == 0) {
-      /* Request: GET_STATUS */
+  } else if ((req->bmRequest & 0b01100000) == 0b00000000) { /* Type: Standard, Recipient: Any */
+    if (req->bRequest == 0) { /* Request: GET_STATUS */
       if (pdev->dev_state == USBD_STATE_CONFIGURED) {
         ret = USBD_CtlSendData(pdev, (uint8_t *)&status_info, 2U);
       }
 
-    } else if (req->bRequest == 1) {
-      /* Request: CLEAR_FEATURE */
+    } else if (req->bRequest == 1) { /* Request: CLEAR_FEATURE */
       ret = USBD_OK;
 
-    } else if (req->bRequest == 6) {
-      /* Request: GET_DESCRIPTOR */
-      if (HIBYTE(req->wValue) == 4) {
-        /* DescriptorType: INTERFACE */
+    } else if (req->bRequest == 6) { /* Request: GET_DESCRIPTOR */
+      if (HIBYTE(req->wValue) == 4) { /* DescriptorType: INTERFACE */
         USBD_DescHeaderTypeDef *desc = USBD_FindDesc(pdev->pConfDesc,
                                                      AUDIO_INTERFACE_DESCRIPTOR_TYPE,
                                                      AUDIO_CONTROL_HEADER);
@@ -441,14 +426,12 @@ static uint8_t USBD_AUDIO_Setup(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *
         ret = USBD_OK;
       }
 
-    } else if (req->bRequest == 10) {
-      /* Request: GET_INTERFACE */
+    } else if (req->bRequest == 10) { /* Request: GET_INTERFACE */
       if (pdev->dev_state == USBD_STATE_CONFIGURED) {
         ret = USBD_CtlSendData(pdev, (uint8_t *)&haudio->alt_setting, 1U);
       }
 
-    } else if (req->bRequest == 11) {
-      /* Request: SET_INTERFACE */
+    } else if (req->bRequest == 11) { /* Request: SET_INTERFACE */
       if (pdev->dev_state == USBD_STATE_CONFIGURED) {
         if (LOBYTE(req->wValue) <= USBD_MAX_NUM_INTERFACES) {
           haudio->alt_setting = (uint8_t)req->wValue;
