@@ -171,17 +171,16 @@ __ALIGN_BEGIN static uint8_t USBD_AUDIO_CfgDesc[USB_AUDIO_CONFIG_DESC_SIZ] __ALI
     /* 12 byte*/
 
     /* USB Speaker Audio Feature Unit Descriptor */
-    0x0A,                            /* bLength */
-    AUDIO_INTERFACE_DESCRIPTOR_TYPE, /* bDescriptorType */
-    AUDIO_CONTROL_FEATURE_UNIT,      /* bDescriptorSubtype */
-    AUDIO_OUT_STREAMING_CTRL,        /* bUnitID */
-    0x01,                            /* bSourceID */
-    0x01,                            /* bControlSize */
-    0 | AUDIO_CONTROL_MUTE,          /* bmaControls(0) */
-    0,                               /* bmaControls(1) */
-    0,                               /* bmaControls(2) */
-    0x00,                            /* iTerminal */
-    /* 10 byte */
+    0x09,                                      /* bLength */
+    AUDIO_INTERFACE_DESCRIPTOR_TYPE,           /* bDescriptorType */
+    AUDIO_CONTROL_FEATURE_UNIT,                /* bDescriptorSubtype */
+    AUDIO_OUT_STREAMING_CTRL,                  /* bUnitID */
+    0x01,                                      /* bSourceID */
+    0x01,                                      /* bControlSize */
+    AUDIO_CONTROL_VOLUME | AUDIO_CONTROL_MUTE, /* bmaControls(0) */
+    0,                                         /* bmaControls(1) */
+    0x00,                                      /* iTerminal */
+    /* 09 byte */
 
     /* USB Speaker Output Terminal Descriptor */
     0x09,                            /* bLength */
@@ -390,6 +389,65 @@ static uint8_t USBD_AUDIO_Setup(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *
   if (haudio == NULL) {
     return (uint8_t)USBD_FAIL;
   }
+
+  switch (req->bmRequest & 0x7F) {
+    case 0b00100001: /* Type: Class, Recipient: Interface */
+    if (req->bmRequest == 0x01 && HIBYTE(req->wValue) == 0x01) {
+      /* Request: SET_CUR, CS: MUTE_CONTROL */
+
+    } else if (req->bRequest == 0x01 && HIBYTE(req->wValue) == 0x02) {
+      /* Request: SET_CUR, CS: VOLUMN_CONTROL */
+      
+    } else if (req->bRequest == 0x81 && HIBYTE(req->wValue) == 0x01) {
+      /* Request: GET_CUR, CS: MUTE_CONTROL */
+      
+    } else if (req->bRequest == 0x81 && HIBYTE(req->wValue) == 0x02) {
+      /* Request: GET_CUR, CS: VOLUMN_CONTROL */
+      
+    } else if (req->bRequest == 0x82 && HIBYTE(req->wValue) == 0x02) {
+      /* Request: GET_MIN, CS: VOLUMN_CONTROL */
+      
+    } else if (req->bRequest == 0x83 && HIBYTE(req->wValue) == 0x02) {
+      /* Request: GET_MAX, CS: VOLUMN_CONTROL */
+      
+    } else if (req->bRequest == 0x84 && HIBYTE(req->wValue) == 0x02) {
+      /* Request: GET_RES, CS: VOLUMN_CONTROL */
+      
+    } else {
+      ret = USBD_FAIL;
+    }
+    break;
+
+    case 0b00000000: /* Type: Standard, Recipient: Device */
+    case 0b00000001: /* Type: Standard, Recipient: Interface */
+    case 0b00000010: /* Type: Standard, Recipient: Endpoint */
+    if (req->bRequest == 0) {
+      /* Request: GET_STATUS */
+
+    } else if (req->bRequest == 1) {
+      /* Request: CLEAR_FEATURE */
+
+    } else if (req->bRequest == 6) {
+      /* Request: GET_DESCRIPTOR */
+
+    } else if (req->bRequest == 10) {
+      /* Request: GET_INTERFACE */
+
+    } else if (req->bRequest == 11) {
+      /* Request: SET_INTERFACE */
+
+    } else {
+      ret = USBD_FAIL;
+    }
+    break;
+
+    default:
+    ret = USBD_FAIL;
+  }
+  if (ret == USBD_FAIL) {
+    USBD_CtlError(pdev, req);
+  }
+  return (uint8_t)ret;
 
   switch (req->bmRequest & USB_REQ_TYPE_MASK) {
     case USB_REQ_TYPE_CLASS:
