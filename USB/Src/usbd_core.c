@@ -1200,6 +1200,36 @@ USBD_DescHeaderTypeDef *USBD_GetNextDesc(uint8_t *pbuf, uint16_t *ptr)
 }
 
 /**
+  * @brief  USBD_FindDesc
+  *         This function return the descriptor header matches type and subType
+  * @param  buf: Buffer where the descriptor is available
+  * @param  type: the descriptor type
+  * @param  subType: the descriptor sub type
+  * @retval the header or NULL if none mathes
+  */
+USBD_DescHeaderTypeDef *USBD_FindDesc(uint8_t *buf, uint8_t type, uint8_t subType)
+{
+  USBD_ConfigDescTypeDef *desc = (USBD_ConfigDescTypeDef *)(void *)buf;
+  USBD_DescHeaderTypeDef *pdesc = (USBD_DescHeaderTypeDef *)(void *)buf;
+  uint8_t *pDesc = NULL;
+  uint16_t ptr;
+
+  if (desc->wTotalLength > desc->bLength) {
+    ptr = desc->bLength;
+
+    while (ptr < desc->wTotalLength) {
+      pdesc = USBD_GetNextDesc((uint8_t *)pdesc, &ptr);
+      if ((pdesc->bDescriptorType == type) &&
+          (pdesc->bDescriptorSubType == subType)) {
+        pDesc = (uint8_t *)pdesc;
+        break;
+      }
+    }
+  }
+  return pDesc;
+}
+
+/**
   * @}
   */
 

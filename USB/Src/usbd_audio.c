@@ -382,7 +382,7 @@ static uint8_t USBD_AUDIO_Setup(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *
   uint16_t len;
   uint8_t *pbuf;
   uint16_t status_info = 0U;
-  USBD_StatusTypeDef ret = USBD_OK;
+  USBD_StatusTypeDef ret = USBD_FAIL;
 
   haudio = (USBD_AUDIO_HandleTypeDef *)pdev->pClassDataCmsit[pdev->classId];
 
@@ -390,148 +390,161 @@ static uint8_t USBD_AUDIO_Setup(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *
     return (uint8_t)USBD_FAIL;
   }
 
-  switch (req->bmRequest & 0x7F) {
-    case 0b00100001: /* Type: Class, Recipient: Interface */
+  if ((req->bmRequest & 0b01111111) == 0b00100001) {
+    /* Type: Class, Recipient: Interface */
+
     if (req->bmRequest == 0x01 && HIBYTE(req->wValue) == 0x01) {
       /* Request: SET_CUR, CS: MUTE_CONTROL */
 
     } else if (req->bRequest == 0x01 && HIBYTE(req->wValue) == 0x02) {
       /* Request: SET_CUR, CS: VOLUMN_CONTROL */
-      
+
     } else if (req->bRequest == 0x81 && HIBYTE(req->wValue) == 0x01) {
       /* Request: GET_CUR, CS: MUTE_CONTROL */
-      
+
     } else if (req->bRequest == 0x81 && HIBYTE(req->wValue) == 0x02) {
       /* Request: GET_CUR, CS: VOLUMN_CONTROL */
-      
+
     } else if (req->bRequest == 0x82 && HIBYTE(req->wValue) == 0x02) {
       /* Request: GET_MIN, CS: VOLUMN_CONTROL */
-      
+
     } else if (req->bRequest == 0x83 && HIBYTE(req->wValue) == 0x02) {
       /* Request: GET_MAX, CS: VOLUMN_CONTROL */
-      
+
     } else if (req->bRequest == 0x84 && HIBYTE(req->wValue) == 0x02) {
       /* Request: GET_RES, CS: VOLUMN_CONTROL */
-      
-    } else {
-      ret = USBD_FAIL;
     }
-    break;
+  } else if ((req->bmRequest & 0b01100000) == 0b00000000) {
+    /* Type: Standard, Recipient: Any */
 
-    case 0b00000000: /* Type: Standard, Recipient: Device */
-    case 0b00000001: /* Type: Standard, Recipient: Interface */
-    case 0b00000010: /* Type: Standard, Recipient: Endpoint */
     if (req->bRequest == 0) {
       /* Request: GET_STATUS */
+      if (pdev->dev_state == USBD_STATE_CONFIGURED) {
+        ret = USBD_CtlSendData(pdev, (uint8_t *)&status_info, 2U);
+      }
 
     } else if (req->bRequest == 1) {
       /* Request: CLEAR_FEATURE */
+      ret = USBD_OK;
 
     } else if (req->bRequest == 6) {
       /* Request: GET_DESCRIPTOR */
+      if (HIBYTE(req->wValue) == 4) {
+        /* DescriptorType: INTERFACE */
+        USBD_DescHeaderTypeDef *desc = USBD_FindDesc(pdev->pConfDesc,
+                                                     AUDIO_INTERFACE_DESCRIPTOR_TYPE,
+                                                     AUDIO_CONTROL_HEADER);
+        if (pbuf != NULL) {
+          ret = USBD_CtlSendData(pdev, pbuf, MIN(desc->bLength, req->wLength));
+        }
+      } else {
+        ret = USBD_OK;
+      }
 
     } else if (req->bRequest == 10) {
       /* Request: GET_INTERFACE */
+      if (pdev->dev_state == USBD_STATE_CONFIGURED) {
+        ret = USBD_CtlSendData(pdev, (uint8_t *)&haudio->alt_setting, 1U);
+      }
 
     } else if (req->bRequest == 11) {
       /* Request: SET_INTERFACE */
-
-    } else {
-      ret = USBD_FAIL;
+      if (pdev->dev_state == USBD_STATE_CONFIGURED) {
+        if (LOBYTE(req->wValue) <= USBD_MAX_NUM_INTERFACES) {
+          haudio->alt_setting = (uint8_t)req->wValue;
+          ret = USBD_OK;
+        }
+      }
     }
-    break;
 
-    default:
-    ret = USBD_FAIL;
-  }
-  if (ret == USBD_FAIL) {
-    USBD_CtlError(pdev, req);
-  }
-  return (uint8_t)ret;
-
-  switch (req->bmRequest & USB_REQ_TYPE_MASK) {
-    case USB_REQ_TYPE_CLASS:
-      switch (req->bRequest) {
-        case AUDIO_REQ_GET_CUR:
-          AUDIO_REQ_GetCurrent(pdev, req);
-          break;
-
-        case AUDIO_REQ_SET_CUR:
-          AUDIO_REQ_SetCurrent(pdev, req);
-          break;
-
-        default:
-          USBD_CtlError(pdev, req);
-          ret = USBD_FAIL;
-          break;
-      }
-      break;
-
-    case USB_REQ_TYPE_STANDARD:
-      switch (req->bRequest) {
-        case USB_REQ_GET_STATUS:
-          if (pdev->dev_state == USBD_STATE_CONFIGURED) {
-            (void)USBD_CtlSendData(pdev, (uint8_t *)&status_info, 2U);
-          } else {
-            USBD_CtlError(pdev, req);
-            ret = USBD_FAIL;
-          }
-          break;
-
-        case USB_REQ_GET_DESCRIPTOR:
-          if ((req->wValue >> 8) == AUDIO_DESCRIPTOR_TYPE) {
-            pbuf = (uint8_t *)USBD_AUDIO_GetAudioHeaderDesc(pdev->pConfDesc);
-            if (pbuf != NULL) {
-              len = MIN(USB_AUDIO_DESC_SIZ, req->wLength);
-              (void)USBD_CtlSendData(pdev, pbuf, len);
-            } else {
-              USBD_CtlError(pdev, req);
-              ret = USBD_FAIL;
-            }
-          }
-          break;
-
-        case USB_REQ_GET_INTERFACE:
-          if (pdev->dev_state == USBD_STATE_CONFIGURED) {
-            (void)USBD_CtlSendData(pdev, (uint8_t *)&haudio->alt_setting, 1U);
-          } else {
-            USBD_CtlError(pdev, req);
-            ret = USBD_FAIL;
-          }
-          break;
-
-        case USB_REQ_SET_INTERFACE:
-          if (pdev->dev_state == USBD_STATE_CONFIGURED) {
-            if ((uint8_t)(req->wValue) <= USBD_MAX_NUM_INTERFACES) {
-              haudio->alt_setting = (uint8_t)(req->wValue);
-            } else {
-              /* Call the error management function (command will be NAKed */
-              USBD_CtlError(pdev, req);
-              ret = USBD_FAIL;
-            }
-          } else {
-            USBD_CtlError(pdev, req);
-            ret = USBD_FAIL;
-          }
-          break;
-
-        case USB_REQ_CLEAR_FEATURE:
-          break;
-
-        default:
-          USBD_CtlError(pdev, req);
-          ret = USBD_FAIL;
-          break;
-      }
-      break;
-    default:
+    if (ret == USBD_FAIL) {
       USBD_CtlError(pdev, req);
-      ret = USBD_FAIL;
-      break;
-  }
+    }
+    return (uint8_t)ret;
 
-  return (uint8_t)ret;
-}
+    switch (req->bmRequest & USB_REQ_TYPE_MASK) {
+      case USB_REQ_TYPE_CLASS:
+        switch (req->bRequest) {
+          case AUDIO_REQ_GET_CUR:
+            AUDIO_REQ_GetCurrent(pdev, req);
+            break;
+
+          case AUDIO_REQ_SET_CUR:
+            AUDIO_REQ_SetCurrent(pdev, req);
+            break;
+
+          default:
+            USBD_CtlError(pdev, req);
+            ret = USBD_FAIL;
+            break;
+        }
+        break;
+
+      case USB_REQ_TYPE_STANDARD:
+        switch (req->bRequest) {
+          case USB_REQ_GET_STATUS:
+            if (pdev->dev_state == USBD_STATE_CONFIGURED) {
+              (void)USBD_CtlSendData(pdev, (uint8_t *)&status_info, 2U);
+            } else {
+              USBD_CtlError(pdev, req);
+              ret = USBD_FAIL;
+            }
+            break;
+
+          case USB_REQ_GET_DESCRIPTOR:
+            if ((req->wValue >> 8) == AUDIO_DESCRIPTOR_TYPE) {
+              pbuf = (uint8_t *)USBD_AUDIO_GetAudioHeaderDesc(pdev->pConfDesc);
+              if (pbuf != NULL) {
+                len = MIN(USB_AUDIO_DESC_SIZ, req->wLength);
+                (void)USBD_CtlSendData(pdev, pbuf, len);
+              } else {
+                USBD_CtlError(pdev, req);
+                ret = USBD_FAIL;
+              }
+            }
+            break;
+
+          case USB_REQ_GET_INTERFACE:
+            if (pdev->dev_state == USBD_STATE_CONFIGURED) {
+              (void)USBD_CtlSendData(pdev, (uint8_t *)&haudio->alt_setting, 1U);
+            } else {
+              USBD_CtlError(pdev, req);
+              ret = USBD_FAIL;
+            }
+            break;
+
+          case USB_REQ_SET_INTERFACE:
+            if (pdev->dev_state == USBD_STATE_CONFIGURED) {
+              if ((uint8_t)(req->wValue) <= USBD_MAX_NUM_INTERFACES) {
+                haudio->alt_setting = (uint8_t)(req->wValue);
+              } else {
+                /* Call the error management function (command will be NAKed */
+                USBD_CtlError(pdev, req);
+                ret = USBD_FAIL;
+              }
+            } else {
+              USBD_CtlError(pdev, req);
+              ret = USBD_FAIL;
+            }
+            break;
+
+          case USB_REQ_CLEAR_FEATURE:
+            break;
+
+          default:
+            USBD_CtlError(pdev, req);
+            ret = USBD_FAIL;
+            break;
+        }
+        break;
+      default:
+        USBD_CtlError(pdev, req);
+        ret = USBD_FAIL;
+        break;
+    }
+
+    return (uint8_t)ret;
+  }
 
 #ifndef USE_USBD_COMPOSITE
 /**
@@ -803,7 +816,7 @@ uint32_t USBD_AUDIO_GetEpPcktSze(USBD_HandleTypeDef *pdev, uint8_t If, uint8_t E
  * @param  pConfDesc:  pointer to Bos descriptor
  * @retval pointer to the Audio AC Header descriptor
  */
-static void *USBD_AUDIO_GetAudioHeaderDesc(uint8_t *pConfDesc) {
+static void *USBD_AUDIO_GetAudioHeaderDesc(uint8_t *pConfDesc, uint8_t type, uint8_t subType) {
   USBD_ConfigDescTypeDef *desc = (USBD_ConfigDescTypeDef *)(void *)pConfDesc;
   USBD_DescHeaderTypeDef *pdesc = (USBD_DescHeaderTypeDef *)(void *)pConfDesc;
   uint8_t *pAudioDesc = NULL;
