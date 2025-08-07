@@ -1211,7 +1211,6 @@ USBD_DescHeaderTypeDef *USBD_FindDesc(uint8_t *buf, uint8_t type, uint8_t subTyp
 {
   USBD_ConfigDescTypeDef *desc = (USBD_ConfigDescTypeDef *)(void *)buf;
   USBD_DescHeaderTypeDef *pdesc = (USBD_DescHeaderTypeDef *)(void *)buf;
-  uint8_t *pDesc = NULL;
   uint16_t ptr;
 
   if (desc->wTotalLength > desc->bLength) {
@@ -1221,12 +1220,11 @@ USBD_DescHeaderTypeDef *USBD_FindDesc(uint8_t *buf, uint8_t type, uint8_t subTyp
       pdesc = USBD_GetNextDesc((uint8_t *)pdesc, &ptr);
       if ((pdesc->bDescriptorType == type) &&
           (pdesc->bDescriptorSubType == subType)) {
-        pDesc = (uint8_t *)pdesc;
-        break;
+        return pdesc;
       }
     }
   }
-  return pDesc;
+  return NULL;
 }
 
 /**

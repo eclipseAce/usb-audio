@@ -58,7 +58,8 @@ USBD_HandleTypeDef hUsbDeviceFS;
 
 extern volatile uint16_t last_rd_samples;
 extern volatile uint16_t last_wr_samples;
-extern volatile uint16_t writable_samples;
+extern volatile uint16_t last_n_writable;
+extern volatile uint32_t last_fb_value;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -128,12 +129,13 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    printf("rd=%5u, wr=%5u, writable=%5u\r\n",
+    printf("rd=%5u, wr=%5u, n_wr=%5u, fb=%lu\r\n",
       last_rd_samples,
       last_wr_samples,
-      writable_samples
+      last_n_writable,
+      (uint32_t) ((float) (last_fb_value >> 8) / (1<<14) * 1000)
     );
-    HAL_Delay(10);
+    HAL_Delay(200);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -453,6 +455,9 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(LCD_BL_GPIO_Port, LCD_BL_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(SD_MODE_GPIO_Port, SD_MODE_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(LCD_CS_GPIO_Port, LCD_CS_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
@@ -464,6 +469,13 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_MEDIUM;
   HAL_GPIO_Init(LCD_BL_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : SD_MODE_Pin */
+  GPIO_InitStruct.Pin = SD_MODE_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(SD_MODE_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : LCD_CS_Pin */
   GPIO_InitStruct.Pin = LCD_CS_Pin;

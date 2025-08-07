@@ -33,19 +33,19 @@ extern "C" {
 #define USBD_MAX_NUM_INTERFACES                       1U
 #endif /* USBD_AUDIO_FREQ */
 
-#ifndef AUDIO_HS_BINTERVAL
-#define AUDIO_HS_BINTERVAL                            0x01U
-#endif /* AUDIO_HS_BINTERVAL */
-
-#ifndef AUDIO_FS_BINTERVAL
-#define AUDIO_FS_BINTERVAL                            0x01U
-#endif /* AUDIO_FS_BINTERVAL */
-
 #ifndef AUDIO_OUT_EP
 #define AUDIO_OUT_EP                                  0x01U
 #endif /* AUDIO_OUT_EP */
 
-#define USB_AUDIO_CONFIG_DESC_SIZ                     0x6DU
+#ifndef AUDIO_IN_EP
+#define AUDIO_IN_EP                                   0x81U
+#endif /* AUDIO_IN_EP */
+
+#define USBD_AUDIO_VOL_MIN                            0xA000U    /* -96dB */
+#define USBD_AUDIO_VOL_MAX                            0x0000U    /*   0dB */
+#define USBD_AUDIO_VOL_RES                            0x0300U    /*   3dB */
+
+#define USB_AUDIO_CONFIG_DESC_SIZ                     0x76U
 #define AUDIO_INTERFACE_DESC_SIZE                     0x09U
 #define USB_AUDIO_DESC_SIZ                            0x09U
 #define AUDIO_STANDARD_ENDPOINT_DESC_SIZE             0x09U
@@ -98,41 +98,26 @@ extern "C" {
 #define AUDIO_OUT_PACKET                              (uint16_t)(((USBD_AUDIO_FREQ * 2U * 2U) / 1000U))
 #define AUDIO_DEFAULT_VOLUME                          70U
 
+#define AUDIO_FB_VALUE                                (uint32_t)((48U * (1<<14)) << 8)
+
 /* Number of sub-packets in the audio transfer buffer. You can modify this value but always make sure
   that it is an even number and higher than 3 */
 #define AUDIO_OUT_PACKET_NUM                          8U
 /* Total size of the audio transfer buffer */
 #define AUDIO_TOTAL_BUF_SIZE                          ((uint16_t)(AUDIO_OUT_PACKET * AUDIO_OUT_PACKET_NUM))
 
-/* Audio Commands enumeration */
-typedef enum {
-  AUDIO_CMD_START = 1,
-  AUDIO_CMD_PLAY,
-  AUDIO_CMD_STOP,
-} AUDIO_CMD_TypeDef;
-
-typedef enum {
-  AUDIO_OFFSET_NONE = 0,
-  AUDIO_OFFSET_HALF,
-  AUDIO_OFFSET_FULL,
-  AUDIO_OFFSET_UNKNOWN,
-} AUDIO_OffsetTypeDef;
-
-typedef struct {
-  uint8_t cmd;
-  uint8_t data[USB_MAX_EP0_SIZE];
-  uint8_t len;
-  uint8_t unit;
-} USBD_AUDIO_ControlTypeDef;
-
 typedef struct {
   uint32_t alt_setting;
   uint8_t buffer[AUDIO_TOTAL_BUF_SIZE];
-  AUDIO_OffsetTypeDef offset;
-  uint8_t rd_enable;
+  uint8_t tx_enabled;
+  uint8_t fb_busy;
+  uint8_t fb_data[3];
   uint16_t rd_ptr;
   uint16_t wr_ptr;
-  USBD_AUDIO_ControlTypeDef control;
+  uint8_t mute;
+  int16_t volume;
+  USBD_SetupReqTypedef setup_req;
+  uint8_t setup_data[USB_MAX_EP0_SIZE];
 } USBD_AUDIO_HandleTypeDef;
 
 /*

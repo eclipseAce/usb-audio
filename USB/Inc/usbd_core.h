@@ -153,7 +153,7 @@ void  USBD_LL_Delay(uint32_t Delay);
 
 void *USBD_GetEpDesc(uint8_t *pConfDesc, uint8_t EpAddr);
 USBD_DescHeaderTypeDef *USBD_GetNextDesc(uint8_t *pbuf, uint16_t *ptr);
-USBD_DescHeaderTypeDef *USBD_FindDesc(uint8_t *buf, uint8_t type, uint8_t subType)
+USBD_DescHeaderTypeDef *USBD_FindDesc(uint8_t *buf, uint8_t type, uint8_t subType);
 
 /**
   * @}
