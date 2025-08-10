@@ -291,8 +291,6 @@ static uint8_t AUDIOInEpAdd = AUDIO_IN_EP;
 
 extern I2S_HandleTypeDef hi2s2;
 
-volatile uint16_t last_rd_samples;
-volatile uint16_t last_wr_samples;
 volatile uint16_t last_n_writable;
 volatile uint32_t last_fb_value;
 
@@ -499,6 +497,17 @@ static uint8_t USBD_AUDIO_Setup(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *
       if (pdev->dev_state == USBD_STATE_CONFIGURED) {
         if (LOBYTE(req->wValue) <= USBD_MAX_NUM_INTERFACES) {
           haudio->alt_setting = (uint8_t)req->wValue;
+
+          if (haudio->alt_setting == 0U) {
+            haudio->tx_enabled = 0U;
+            haudio->wr_ptr = 0U;
+            haudio->rd_ptr = 0U;
+
+            /* Stop DMA Transfer */
+            HAL_I2S_DMAStop(&hi2s2);
+            HAL_GPIO_WritePin(SD_MODE_GPIO_Port, SD_MODE_Pin, GPIO_PIN_RESET);
+          }
+
           ret = USBD_OK;
         }
       }
@@ -533,7 +542,7 @@ static uint8_t USBD_AUDIO_EP0_RxReady(USBD_HandleTypeDef *pdev) {
     /* Request: SET_CUR, CS: MUTE_CONTROL */
     if (req->bRequest == 0x01 && HIBYTE(req->wValue) == 0x01) {
       haudio->mute = haudio->setup_data[0];
-      HAL_GPIO_WritePin(SD_MODE_GPIO_Port, SD_MODE_Pin, haudio->mute ? GPIO_PIN_RESET : GPIO_PIN_SET);
+      // HAL_GPIO_WritePin(SD_MODE_GPIO_Port, SD_MODE_Pin, haudio->mute ? GPIO_PIN_RESET : GPIO_PIN_SET);
     }
 
     /* Request: SET_CUR, CS: VOLUMN_CONTROL */
@@ -621,7 +630,7 @@ static uint8_t USBD_AUDIO_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum) {
 
         /* Start DMA Transfer */
         HAL_I2S_Transmit_DMA(&hi2s2, (uint16_t *)haudio->buffer, AUDIO_TOTAL_BUF_SIZE / sizeof(uint16_t));
-        HAL_GPIO_WritePin(SD_MODE_GPIO_Port, SD_MODE_Pin, GPIO_PIN_SET);
+        // HAL_GPIO_WritePin(SD_MODE_GPIO_Port, SD_MODE_Pin, GPIO_PIN_SET);
       }
     }
 
@@ -646,39 +655,41 @@ static uint8_t USBD_AUDIO_SOF(USBD_HandleTypeDef *pdev) {
     return (uint8_t)USBD_FAIL;
   }
 
-  haudio->rd_ptr = AUDIO_TOTAL_BUF_SIZE - ((DMA_Stream_TypeDef *)hi2s2.hdmatx->Instance)->NDTR * sizeof(uint16_t);
-  uint16_t rd_samples = haudio->rd_ptr / 4;
-  uint16_t wr_samples = haudio->wr_ptr / 4;
+  uint16_t rd_ptr = AUDIO_TOTAL_BUF_SIZE - ((DMA_Stream_TypeDef *)hi2s2.hdmatx->Instance)->NDTR * sizeof(uint16_t);
 
-  static uint16_t last_rd = 0;
-  static uint16_t last_wr = 0;
-  last_rd_samples = rd_samples > last_rd ? rd_samples - last_rd : rd_samples + AUDIO_TOTAL_BUF_SIZE / 4 - last_rd;
-  last_wr_samples = wr_samples > last_wr ? wr_samples - last_wr : wr_samples + AUDIO_TOTAL_BUF_SIZE / 4 - last_wr;
-  last_rd = rd_samples;
-  last_wr = wr_samples;
+  uint32_t USBx_BASE = (uint32_t)USB_OTG_FS;
+  uint16_t fnsof = (uint16_t)((USBx_DEVICE->DSTS & USB_OTG_DSTS_FNSOF) >> 8);
+
 
   uint16_t n_writable;
   if (haudio->rd_ptr < haudio->wr_ptr) {
-    n_writable = (haudio->rd_ptr + AUDIO_TOTAL_BUF_SIZE - haudio->wr_ptr) / 4;
+    n_writable = (uint16_t)((uint32_t)haudio->rd_ptr + AUDIO_TOTAL_BUF_SIZE - haudio->wr_ptr) / 4;
   } else {
     n_writable = (haudio->rd_ptr - haudio->wr_ptr) / 4;
   }
   last_n_writable = n_writable;
 
-  uint32_t fb_value = n_writable * 48 / (AUDIO_TOTAL_BUF_SIZE / 2);
+  uint32_t fb_value = 0x0C00A300;
+  last_fb_value = fb_value;
+
+  // uint32_t fb_value = n_writable * (AUDIO_TOTAL_BUF_SIZE / 2) / 48;
   // if (fb_value > 49) {
   //   fb_value = 49;
   // } else if (fb_value < 47) {
   //   fb_value = 47;
   // }
-  fb_value = ((fb_value) * (1 << 14)) << 8;
-  last_fb_value = fb_value;
+  // fb_value = ((fb_value) * (1 << 14)) << 8;
+  // last_fb_value = fb_value;
 
   if (haudio->fb_busy == 0U) {
-    haudio->fb_data[0] = (uint8_t)((fb_value >> 8) & 0x000000FF);
-    haudio->fb_data[1] = (uint8_t)((fb_value >> 16) & 0x000000FF);
-    haudio->fb_data[2] = (uint8_t)((fb_value >> 24) & 0x000000FF);
-    USBD_LL_Transmit(pdev, AUDIO_IN_EP, haudio->fb_data, 3U);
+    
+    if (fnsof % 4 == 0) {
+      haudio->fb_busy = 1U;
+      haudio->fb_data[0] = (uint8_t)((fb_value >> 8) & 0x000000FF);
+      haudio->fb_data[1] = (uint8_t)((fb_value >> 16) & 0x000000FF);
+      haudio->fb_data[2] = (uint8_t)((fb_value >> 24) & 0x000000FF);
+      USBD_LL_Transmit(pdev, AUDIO_IN_EP, haudio->fb_data, 3U);
+    }
   }
 
   return (uint8_t)USBD_OK;
@@ -692,8 +703,19 @@ static uint8_t USBD_AUDIO_SOF(USBD_HandleTypeDef *pdev) {
  * @retval status
  */
 static uint8_t USBD_AUDIO_IsoINIncomplete(USBD_HandleTypeDef *pdev, uint8_t epnum) {
-  UNUSED(pdev);
-  UNUSED(epnum);
+  USBD_AUDIO_HandleTypeDef *haudio;
+
+  if (epnum == (AUDIO_IN_EP & 0x0FU)) {
+    haudio = (USBD_AUDIO_HandleTypeDef *)pdev->pClassDataCmsit[pdev->classId];
+    if (haudio == NULL) {
+      return (uint8_t)USBD_FAIL;
+    }
+
+    if (haudio->fb_busy == 1U) {
+      haudio->fb_busy = 0U;
+      USBD_LL_FlushEP(pdev, AUDIO_IN_EP);
+    }
+  }
 
   return (uint8_t)USBD_OK;
 }

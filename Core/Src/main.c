@@ -56,8 +56,6 @@ PCD_HandleTypeDef hpcd_USB_OTG_FS;
 /* USER CODE BEGIN PV */
 USBD_HandleTypeDef hUsbDeviceFS;
 
-extern volatile uint16_t last_rd_samples;
-extern volatile uint16_t last_wr_samples;
 extern volatile uint16_t last_n_writable;
 extern volatile uint32_t last_fb_value;
 /* USER CODE END PV */
@@ -129,9 +127,7 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    printf("rd=%5u, wr=%5u, n_wr=%5u, fb=%lu\r\n",
-      last_rd_samples,
-      last_wr_samples,
+    printf("n_wr=%5u, fb=%lu\r\n",
       last_n_writable,
       (uint32_t) ((float) (last_fb_value >> 8) / (1<<14) * 1000)
     );
