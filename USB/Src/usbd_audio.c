@@ -655,34 +655,18 @@ static uint8_t USBD_AUDIO_SOF(USBD_HandleTypeDef *pdev) {
     return (uint8_t)USBD_FAIL;
   }
 
-  uint16_t rd_ptr = AUDIO_TOTAL_BUF_SIZE - ((DMA_Stream_TypeDef *)hi2s2.hdmatx->Instance)->NDTR * sizeof(uint16_t);
+  haudio->rd_ptr = AUDIO_TOTAL_BUF_SIZE - ((DMA_Stream_TypeDef *)hi2s2.hdmatx->Instance)->NDTR * sizeof(uint16_t);
 
-  uint32_t USBx_BASE = (uint32_t)USB_OTG_FS;
-  uint16_t fnsof = (uint16_t)((USBx_DEVICE->DSTS & USB_OTG_DSTS_FNSOF) >> 8);
-
-
-  uint16_t n_writable;
-  if (haudio->rd_ptr < haudio->wr_ptr) {
-    n_writable = (uint16_t)((uint32_t)haudio->rd_ptr + AUDIO_TOTAL_BUF_SIZE - haudio->wr_ptr) / 4;
-  } else {
-    n_writable = (haudio->rd_ptr - haudio->wr_ptr) / 4;
-  }
-  last_n_writable = n_writable;
-
-  uint32_t fb_value = 0x0C00A300;
-  last_fb_value = fb_value;
-
-  // uint32_t fb_value = n_writable * (AUDIO_TOTAL_BUF_SIZE / 2) / 48;
-  // if (fb_value > 49) {
-  //   fb_value = 49;
-  // } else if (fb_value < 47) {
-  //   fb_value = 47;
-  // }
-  // fb_value = ((fb_value) * (1 << 14)) << 8;
-  // last_fb_value = fb_value;
+  uint16_t wr_len = haudio->rd_ptr < haudio->wr_ptr
+                            ? haudio->rd_ptr + AUDIO_TOTAL_BUF_SIZE - haudio->wr_ptr
+                            : haudio->rd_ptr - haudio->wr_ptr;
+  uint32_t fb_norm = 48 * (1 << 14);
+  int32_t mul = (1 << 14) + (wr_len - (AUDIO_TOTAL_BUF_SIZE / 4 / 2));
+  uint32_t fb_value = (uint32_t)(((uint64_t)fb_norm * mul) / (1 << 14));
 
   if (haudio->fb_busy == 0U) {
-    
+    uint32_t USBx_BASE = (uint32_t)USB_OTG_FS;
+    uint16_t fnsof = (uint16_t)((USBx_DEVICE->DSTS & USB_OTG_DSTS_FNSOF) >> 8);
     if (fnsof % 4 == 0) {
       haudio->fb_busy = 1U;
       haudio->fb_data[0] = (uint8_t)((fb_value >> 8) & 0x000000FF);
