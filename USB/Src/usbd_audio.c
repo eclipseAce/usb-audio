@@ -662,7 +662,7 @@ static uint8_t USBD_AUDIO_SOF(USBD_HandleTypeDef *pdev) {
                             : haudio->rd_ptr - haudio->wr_ptr;
   uint32_t fb_norm = 48 * (1 << 14);
   int32_t mul = (1 << 14) + (wr_len - (AUDIO_TOTAL_BUF_SIZE / 4 / 2));
-  uint32_t fb_value = (uint32_t)(((uint64_t)fb_norm * mul) / (1 << 14));
+  uint32_t fb_value = (uint32_t)(((uint64_t)fb_norm * mul) / (1 << 14)) << 8;
 
   if (haudio->fb_busy == 0U) {
     uint32_t USBx_BASE = (uint32_t)USB_OTG_FS;
