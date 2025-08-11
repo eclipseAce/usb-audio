@@ -56,6 +56,7 @@
 #include "usbd_audio.h"
 
 #include "main.h"
+#include "arm_math.h"
 #include "usbd_ctlreq.h"
 
 #define AUDIO_SAMPLE_FREQ(frq) \
@@ -293,6 +294,20 @@ extern I2S_HandleTypeDef hi2s2;
 
 volatile int32_t last_delta;
 volatile uint32_t last_fbval;
+
+volatile float32_t *pSamples = NULL;
+volatile uint32_t nSamplesRead = 0;
+volatile uint32_t nSamples = 0;
+
+void AUDIO_WaitForSamples(float32_t *samples, uint32_t size) {
+  pSamples = samples;
+  nSamples = size;
+  nSamplesRead = 0;
+  while (nSamplesRead < nSamples) {
+    __NOP();
+  }
+}
+
 
 /**
  * @brief  USBD_AUDIO_Init
@@ -614,6 +629,13 @@ static uint8_t USBD_AUDIO_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum) {
     /* Get received data packet length */
     packet_size = (uint16_t)USBD_LL_GetRxDataSize(pdev, epnum);
 
+    if (pSamples != NULL && nSamplesRead < nSamples) {
+      int16_t *ptr = (int16_t *)&haudio->buffer;
+      for (uint16_t i = 0; i < packet_size / 2 / 2 && nSamplesRead < nSamples; i++) {
+        pSamples[nSamplesRead++] = (float32_t)ptr[i * 2];
+      }
+    }
+
     /* Increment the Buffer pointer or roll it back when all buffers are full */
     haudio->wr_ptr += packet_size;
 
@@ -625,6 +647,8 @@ static uint8_t USBD_AUDIO_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum) {
       }
       haudio->wr_ptr = overflow;
     }
+
+    
 
     // Start playing when half of the audio buffer is filled
     // so if you increase the buffer length too much, the audio latency will be obvious when watching video+audio

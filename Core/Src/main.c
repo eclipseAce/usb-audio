@@ -24,6 +24,9 @@
 #include "usbd_core.h"
 #include "usbd_desc.h"
 #include "usbd_audio.h"
+
+#include "lcd.h"
+#include "arm_math.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -33,7 +36,10 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+#define N_SAMPLES 1024
+#define BAR_COUNT 240
+#define SMOOTH_DOWN  0.08
+#define SMOOTH_UP    0.8
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -74,7 +80,7 @@ static void MX_SPI1_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_USB_OTG_FS_PCD_Init(void);
 /* USER CODE BEGIN PFP */
-
+void AUDIO_WaitForSamples(float32_t *samples, uint32_t size);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -124,6 +130,15 @@ int main(void)
   MX_USB_OTG_FS_PCD_Init();
   /* USER CODE BEGIN 2 */
 
+  LCD_Init();
+  LCD_DrawRect(0, 0, 240, 240, 0xFFFF);
+  LCD_Sync();
+
+  static arm_rfft_fast_instance_f32 S;
+  static float32_t inBuf[N_SAMPLES] = { 0.0 };
+  static float32_t outBuf[N_SAMPLES] = { 0.0 };
+  arm_rfft_fast_init_f32(&S, N_SAMPLES);
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -132,7 +147,102 @@ int main(void)
   {
     float fbval = (float)(last_fbval >> 8) / (1<<14);
     printf("delta=%5ld, fbval=%9ld\r\n", last_delta, (long)(fbval * 1000000));
-    HAL_Delay(500);
+    // HAL_Delay(500);
+
+    AUDIO_WaitForSamples(inBuf, N_SAMPLES);
+    arm_rfft_fast_f32(&S, inBuf, outBuf, 0);
+//    arm_cmplx_mag_f32(outBuf, inBuf, N_SAMPLES);
+
+    float32_t bucketVals[BAR_COUNT] = { 0.0 };
+//    float32_t bucketValMax = -9999999999;
+//    float32_t bucketValMin = 9999999999;
+//    float32_t bucketValAvg = 0;
+//    for (int i = 0; i < BAR_COUNT; i++) {
+//      for (int j = i * 1; j < (i + 1) * 1; j++) {
+//        bucketVals[i] += inBuf[j];
+//      }
+//      bucketVals[i] /= 1;
+//      if (bucketVals[i] > bucketValMax) {
+//        bucketValMax = bucketVals[i];
+//      }
+//      if (bucketVals[i] < bucketValMin) {
+//        bucketValMin = bucketVals[i];
+//      }
+//      bucketValAvg += bucketVals[i];
+//    }
+//    bucketValAvg /= BAR_COUNT;
+//
+//    if (bucketValMax > 0) {
+//      for (int i = 0; i < BAR_COUNT; i++) {
+//        bucketVals[i] = (bucketVals[i] - bucketValMin) / (bucketValMax - bucketValMin);
+//        if (bucketVals[i] > 0.66) {
+//          bucketVals[i] = 0.66;
+//        }
+//      }
+//    }
+    uint8_t minMaxInit = 0;
+    float32_t bucketValMax;
+    float32_t bucketValMin;
+    for (int i = 0; i < BAR_COUNT; i++) {
+      float32_t real = outBuf[i * 2];
+      float32_t imag = outBuf[i * 2 + 1];
+      float32_t db;
+      if (real != 0 || imag != 0) {
+        db = 10.0 * log10(pow(real, 2) + pow(imag, 2));
+      } else {
+        db = 0;
+      }
+      if (minMaxInit) {
+        if (db > bucketValMax) {
+          bucketValMax = db;
+        }
+        if (db < bucketValMin) {
+          bucketValMin = db;
+        }
+      } else {
+        bucketValMax = db;
+        bucketValMin = db;
+        minMaxInit = 1;
+      }
+      bucketVals[i] = db;
+    }
+    for (int i = 0; i < BAR_COUNT; i++) {
+      if (bucketValMax != bucketValMin) {
+        bucketVals[i] = (bucketVals[i] - bucketValMin) / (bucketValMax - bucketValMin);
+      } else {
+        bucketVals[i] = 0;
+      }
+    }
+
+    static uint8_t lastInit = 0;
+    static float32_t lastBucketVals[BAR_COUNT] = { 0.0 };
+    for (int i = 0; i < BAR_COUNT; i++) {
+      if (lastInit) {
+        if (bucketVals[i] < lastBucketVals[i]) {
+          lastBucketVals[i] = bucketVals[i] * SMOOTH_DOWN + lastBucketVals[i] * (1 - SMOOTH_DOWN);
+        } else {
+          lastBucketVals[i] = bucketVals[i] * SMOOTH_UP + lastBucketVals[i] * (1 - SMOOTH_UP);
+        }
+      } else {
+        lastBucketVals[i] = bucketVals[i];
+        lastInit = 1;
+      }
+    }
+
+
+    LCD_DrawRect(0, 0, 240, 240, 0xFFFF);
+    for (int i = 0; i < BAR_COUNT; i++) {
+      uint16_t h = (uint16_t) (240.0 * lastBucketVals[i]);
+      uint16_t w = 240 / BAR_COUNT;
+      uint16_t x = i * w;
+      uint16_t y = 0;
+      LCD_DrawRect(x, y, w, h, 0x0FF0);
+    }
+
+    LCD_DrawRect(0, 0, 10, 20, 0xF00F);
+
+    LCD_Sync();
+    HAL_Delay(10);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
