@@ -56,8 +56,11 @@ PCD_HandleTypeDef hpcd_USB_OTG_FS;
 /* USER CODE BEGIN PV */
 USBD_HandleTypeDef hUsbDeviceFS;
 
-extern volatile uint16_t last_n_writable;
-extern volatile uint32_t last_fb_value;
+extern volatile uint8_t print_flag;
+extern volatile int32_t last_delta;
+extern volatile uint32_t last_fbval;
+extern volatile int32_t rd_ptr_off;
+extern volatile int32_t wr_ptr_off;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -127,11 +130,9 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    printf("n_wr=%5u, fb=%lu\r\n",
-      last_n_writable,
-      (uint32_t) ((float) (last_fb_value >> 8) / (1<<14) * 1000)
-    );
-    HAL_Delay(200);
+    float fbval = (float)(last_fbval >> 8) / (1<<14);
+    printf("delta=%5ld, fbval=%9ld\r\n", last_delta, (long)(fbval * 1000000));
+    HAL_Delay(500);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -389,7 +390,7 @@ static void MX_USB_OTG_FS_PCD_Init(void)
   hpcd_USB_OTG_FS.pData = &hUsbDeviceFS;
   hUsbDeviceFS.pData = &hpcd_USB_OTG_FS;
 
-  HAL_PCDEx_SetRxFiFo(&hpcd_USB_OTG_FS, 0x80);
+  HAL_PCDEx_SetRxFiFo(&hpcd_USB_OTG_FS, 0x120);
   HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_FS, 0, 0x40);
   HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_FS, 1, 0x80);
 

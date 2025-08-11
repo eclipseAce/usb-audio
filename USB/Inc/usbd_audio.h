@@ -95,7 +95,7 @@ extern "C" {
 #define AUDIO_OUT_TC                                  0x01U
 #define AUDIO_IN_TC                                   0x02U
 
-#define AUDIO_OUT_PACKET                              (uint16_t)(((USBD_AUDIO_FREQ * 2U * 2U) / 1000U))
+#define AUDIO_OUT_PACKET                              (uint16_t)(((USBD_AUDIO_FREQ / 1000U + 1) * 2U * 2U))
 #define AUDIO_DEFAULT_VOLUME                          70U
 
 #define AUDIO_FB_VALUE                                (uint32_t)((48U * (1<<14)) << 8)
@@ -108,7 +108,7 @@ extern "C" {
 
 typedef struct {
   uint32_t alt_setting;
-  uint8_t buffer[AUDIO_TOTAL_BUF_SIZE];
+  uint8_t buffer[AUDIO_TOTAL_BUF_SIZE + AUDIO_OUT_PACKET];
   uint8_t tx_enabled;
   uint8_t fb_busy;
   uint8_t fb_data[3];

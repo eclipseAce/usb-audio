@@ -62,7 +62,7 @@
   (uint8_t)(frq), (uint8_t)((frq >> 8)), (uint8_t)((frq >> 16))
 
 #define AUDIO_PACKET_SZE(frq) \
-  (uint8_t)(((frq * 2U * 2U) / 1000U) & 0xFFU), (uint8_t)((((frq * 2U * 2U) / 1000U) >> 8) & 0xFFU)
+  (uint8_t)(((frq / 1000U + 1) * 2U * 2U) & 0xFFU), (uint8_t)((((frq / 1000U + 1) * 2U * 2U) >> 8) & 0xFFU)
 
 #ifdef USE_USBD_COMPOSITE
 #define AUDIO_PACKET_SZE_WORD(frq) \
@@ -167,15 +167,15 @@ __ALIGN_BEGIN static uint8_t USBD_AUDIO_CfgDesc[USB_AUDIO_CONFIG_DESC_SIZ] __ALI
     /* 12 byte*/
 
     /* USB Speaker Audio Feature Unit Descriptor */
-    0x09,                                      /* bLength */
-    AUDIO_INTERFACE_DESCRIPTOR_TYPE,           /* bDescriptorType */
-    AUDIO_CONTROL_FEATURE_UNIT,                /* bDescriptorSubtype */
-    AUDIO_OUT_STREAMING_CTRL,                  /* bUnitID */
-    0x01,                                      /* bSourceID */
-    0x01,                                      /* bControlSize */
-    AUDIO_CONTROL_VOLUME | AUDIO_CONTROL_MUTE, /* bmaControls(0) */
-    0,                                         /* bmaControls(1) */
-    0x00,                                      /* iTerminal */
+    0x09,                            /* bLength */
+    AUDIO_INTERFACE_DESCRIPTOR_TYPE, /* bDescriptorType */
+    AUDIO_CONTROL_FEATURE_UNIT,      /* bDescriptorSubtype */
+    AUDIO_OUT_STREAMING_CTRL,        /* bUnitID */
+    0x01,                            /* bSourceID */
+    0x01,                            /* bControlSize */
+    0 | AUDIO_CONTROL_MUTE,          /* bmaControls(0) */
+    0,                               /* bmaControls(1) */
+    0x00,                            /* iTerminal */
     /* 09 byte */
 
     /* USB Speaker Output Terminal Descriptor */
@@ -291,8 +291,8 @@ static uint8_t AUDIOInEpAdd = AUDIO_IN_EP;
 
 extern I2S_HandleTypeDef hi2s2;
 
-volatile uint16_t last_n_writable;
-volatile uint32_t last_fb_value;
+volatile int32_t last_delta;
+volatile uint32_t last_fbval;
 
 /**
  * @brief  USBD_AUDIO_Init
@@ -542,7 +542,7 @@ static uint8_t USBD_AUDIO_EP0_RxReady(USBD_HandleTypeDef *pdev) {
     /* Request: SET_CUR, CS: MUTE_CONTROL */
     if (req->bRequest == 0x01 && HIBYTE(req->wValue) == 0x01) {
       haudio->mute = haudio->setup_data[0];
-      // HAL_GPIO_WritePin(SD_MODE_GPIO_Port, SD_MODE_Pin, haudio->mute ? GPIO_PIN_RESET : GPIO_PIN_SET);
+      HAL_GPIO_WritePin(SD_MODE_GPIO_Port, SD_MODE_Pin, haudio->mute ? GPIO_PIN_RESET : GPIO_PIN_SET);
     }
 
     /* Request: SET_CUR, CS: VOLUMN_CONTROL */
@@ -619,7 +619,11 @@ static uint8_t USBD_AUDIO_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum) {
 
     if (haudio->wr_ptr >= AUDIO_TOTAL_BUF_SIZE) {
       /* All buffers are full: roll back */
-      haudio->wr_ptr = 0U;
+      uint16_t overflow = haudio->wr_ptr - AUDIO_TOTAL_BUF_SIZE;
+      for (uint16_t i = 0; i < overflow; i++) {
+        haudio->buffer[i] = haudio->buffer[AUDIO_TOTAL_BUF_SIZE + i];
+      }
+      haudio->wr_ptr = overflow;
     }
 
     // Start playing when half of the audio buffer is filled
@@ -630,7 +634,7 @@ static uint8_t USBD_AUDIO_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum) {
 
         /* Start DMA Transfer */
         HAL_I2S_Transmit_DMA(&hi2s2, (uint16_t *)haudio->buffer, AUDIO_TOTAL_BUF_SIZE / sizeof(uint16_t));
-        // HAL_GPIO_WritePin(SD_MODE_GPIO_Port, SD_MODE_Pin, GPIO_PIN_SET);
+        HAL_GPIO_WritePin(SD_MODE_GPIO_Port, SD_MODE_Pin, GPIO_PIN_SET);
       }
     }
 
@@ -657,12 +661,14 @@ static uint8_t USBD_AUDIO_SOF(USBD_HandleTypeDef *pdev) {
 
   haudio->rd_ptr = AUDIO_TOTAL_BUF_SIZE - ((DMA_Stream_TypeDef *)hi2s2.hdmatx->Instance)->NDTR * sizeof(uint16_t);
 
-  uint16_t wr_len = haudio->rd_ptr < haudio->wr_ptr
-                            ? haudio->rd_ptr + AUDIO_TOTAL_BUF_SIZE - haudio->wr_ptr
-                            : haudio->rd_ptr - haudio->wr_ptr;
-  uint32_t fb_norm = 48 * (1 << 14);
-  int32_t mul = (1 << 14) + (wr_len - (AUDIO_TOTAL_BUF_SIZE / 4 / 2));
-  uint32_t fb_value = (uint32_t)(((uint64_t)fb_norm * mul) / (1 << 14)) << 8;
+  uint16_t writable = haudio->rd_ptr < haudio->wr_ptr
+                          ? haudio->rd_ptr + AUDIO_TOTAL_BUF_SIZE - haudio->wr_ptr
+                          : haudio->rd_ptr - haudio->wr_ptr;
+  int32_t delta = (writable - AUDIO_TOTAL_BUF_SIZE / 2) / 4;
+  uint32_t fb_value = (uint32_t)(((uint64_t)(AUDIO_FB_VALUE >> 8) * ((1 << 14) + delta)) / (1 << 14)) << 8;
+
+  last_delta = delta;
+  last_fbval = fb_value;
 
   if (haudio->fb_busy == 0U) {
     uint32_t USBx_BASE = (uint32_t)USB_OTG_FS;
@@ -714,13 +720,17 @@ static uint8_t USBD_AUDIO_IsoINIncomplete(USBD_HandleTypeDef *pdev, uint8_t epnu
 static uint8_t USBD_AUDIO_IsoOUTIncomplete(USBD_HandleTypeDef *pdev, uint8_t epnum) {
   USBD_AUDIO_HandleTypeDef *haudio;
 
-  haudio = (USBD_AUDIO_HandleTypeDef *)pdev->pClassDataCmsit[pdev->classId];
-  if (haudio == NULL) {
-    return (uint8_t)USBD_FAIL;
-  }
+  if (epnum == (AUDIO_OUT_EP & 0x0FU)) {
+    haudio = (USBD_AUDIO_HandleTypeDef *)pdev->pClassDataCmsit[pdev->classId];
+    if (haudio == NULL) {
+      return (uint8_t)USBD_FAIL;
+    }
 
-  /* Prepare Out endpoint to receive next audio packet */
-  USBD_LL_PrepareReceive(pdev, epnum, &haudio->buffer[haudio->wr_ptr], AUDIO_OUT_PACKET);
+    USBD_LL_FlushEP(pdev, epnum);
+
+    /* Prepare Out endpoint to receive next audio packet */
+    USBD_LL_PrepareReceive(pdev, epnum, &haudio->buffer[haudio->wr_ptr], AUDIO_OUT_PACKET);
+  }
 
   return (uint8_t)USBD_OK;
 }
