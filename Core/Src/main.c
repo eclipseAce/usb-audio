@@ -118,6 +118,31 @@ int main(void)
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
 
+  /* Init Device Library, add supported class and start the library. */
+  if (USBD_Init(&hUsbDeviceFS, &Class_Desc, 0) != USBD_OK)
+  {
+    Error_Handler();
+  }
+  static uint8_t EpAddr_AUDIO[] = { AUDIO_EPIN_ADDR, AUDIO_EPOUT_ADDR };
+  if (USBD_RegisterClassComposite(&hUsbDeviceFS, USBD_AUDIO_CLASS, CLASS_TYPE_AUDIO, &EpAddr_AUDIO[0]) != USBD_OK)
+  {
+    Error_Handler();
+  }
+  static uint8_t EpAddr_HID[] = { HID_EPIN_ADDR };
+  if (USBD_RegisterClassComposite(&hUsbDeviceFS, USBD_HID_CLASS, CLASS_TYPE_HID, &EpAddr_HID[0]) != USBD_OK)
+  {
+    Error_Handler();
+  }
+  if (USBD_AUDIO_RegisterInterface(&hUsbDeviceFS, &USBD_AUDIO_fops) != USBD_OK)
+  {
+    Error_Handler();
+  }
+  if (USBD_Start(&hUsbDeviceFS) != USBD_OK)
+  {
+    Error_Handler();
+  }
+  HAL_PWREx_EnableUSBVoltageDetector();
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -378,31 +403,6 @@ void MX_USB_OTG_FS_PCD_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN USB_OTG_FS_Init 2 */
-
-  /* Init Device Library, add supported class and start the library. */
-  if (USBD_Init(&hUsbDeviceFS, &Class_Desc, 0) != USBD_OK)
-  {
-    Error_Handler();
-  }
-  static uint8_t EpAddr_AUDIO[] = { AUDIO_EPIN_ADDR, AUDIO_EPOUT_ADDR };
-  if (USBD_RegisterClassComposite(&hUsbDeviceFS, USBD_AUDIO_CLASS, CLASS_TYPE_AUDIO, &EpAddr_AUDIO[0]) != USBD_OK)
-  {
-    Error_Handler();
-  }
-  static uint8_t EpAddr_HID[] = { HID_EPIN_ADDR };
-  if (USBD_RegisterClassComposite(&hUsbDeviceFS, USBD_HID_CLASS, CLASS_TYPE_HID, &EpAddr_HID[0]) != USBD_OK)
-  {
-    Error_Handler();
-  }
-  if (USBD_AUDIO_RegisterInterface(&hUsbDeviceFS, &USBD_AUDIO_fops) != USBD_OK)
-  {
-    Error_Handler();
-  }
-  if (USBD_Start(&hUsbDeviceFS) != USBD_OK)
-  {
-    Error_Handler();
-  }
-  HAL_PWREx_EnableUSBVoltageDetector();
 
   /* USER CODE END USB_OTG_FS_Init 2 */
 

@@ -72,7 +72,7 @@ static int8_t  AUDIO_IF_MuteCtl(uint8_t cmd);
 static int8_t  AUDIO_IF_PeriodicTC(uint8_t *pbuf, uint32_t size, uint8_t cmd);
 static int8_t  AUDIO_IF_GetState(void);
 
-USBD_AUDIO_ItfTypeDef USBD_AUDIO_Template_fops =
+USBD_AUDIO_ItfTypeDef USBD_AUDIO_fops =
 {
   AUDIO_IF_Init,
   AUDIO_IF_DeInit,
