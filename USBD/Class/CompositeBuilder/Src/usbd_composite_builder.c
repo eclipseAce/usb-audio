@@ -1141,6 +1141,7 @@ static void  USBD_CMPSIT_AUDIODesc(USBD_HandleTypeDef *pdev, uint32_t pConf, __I
   USBD_SpeakerIIIFormatIfDescTypeDef   *pSpIIIDesc;
   USBD_SpeakerEndDescTypeDef           *pSpEpDesc;
   USBD_SpeakerEndStDescTypeDef         *pSpEpStDesc;
+  USBD_SpeakerEndDescTypeDef           *pSpFbEpDesc;
 
 #if USBD_COMPOSITE_USE_IAD == 1
   pIadDesc                          = ((USBD_IadDescTypeDef *)(pConf + *Sze));
@@ -1178,8 +1179,8 @@ static void  USBD_CMPSIT_AUDIODesc(USBD_HandleTypeDef *pdev, uint32_t pConf, __I
   pSpInDesc->bTerminalID = 0x01U;
   pSpInDesc->wTerminalType = 0x0101U;
   pSpInDesc->bAssocTerminal = 0x00U;
-  pSpInDesc->bNrChannels = 0x01U;
-  pSpInDesc->wChannelConfig = 0x0000U;
+  pSpInDesc->bNrChannels = 0x02U;
+  pSpInDesc->wChannelConfig = 0x0003U;
   pSpInDesc->iChannelNames = 0x00U;
   pSpInDesc->iTerminal = 0x00U;
   *Sze += (uint32_t)sizeof(USBD_SpeakerInDescTypeDef);
@@ -1192,7 +1193,7 @@ static void  USBD_CMPSIT_AUDIODesc(USBD_HandleTypeDef *pdev, uint32_t pConf, __I
   pSpFDesc->bUnitID = AUDIO_OUT_STREAMING_CTRL;
   pSpFDesc->bSourceID = 0x01U;
   pSpFDesc->bControlSize = 0x01U;
-  pSpFDesc->bmaControls = AUDIO_CONTROL_MUTE;
+  pSpFDesc->bmaControls = AUDIO_CONTROL_VOLUME | AUDIO_CONTROL_MUTE;
   pSpFDesc->iTerminal = 0x00U;
   *Sze += (uint32_t)sizeof(USBD_SpeakerFeatureDescTypeDef);
 
@@ -1235,27 +1236,27 @@ static void  USBD_CMPSIT_AUDIODesc(USBD_HandleTypeDef *pdev, uint32_t pConf, __I
   pSpIIIDesc->bDescriptorSubtype = AUDIO_STREAMING_FORMAT_TYPE;
   pSpIIIDesc->bFormatType = AUDIO_FORMAT_TYPE_I;
   pSpIIIDesc->bNrChannels = 0x02U;
-  pSpIIIDesc->bSubFrameSize = 0x02U;
-  pSpIIIDesc->bBitResolution = 16U;
+  pSpIIIDesc->bSubFrameSize = AUDIO_OUT_SUBFRAME;
+  pSpIIIDesc->bBitResolution = USBD_AUDIO_BITRES;
   pSpIIIDesc->bSamFreqType = 1U;
-  pSpIIIDesc->tSamFreq2 = 0x80U;
-  pSpIIIDesc->tSamFreq1 = 0xBBU;
-  pSpIIIDesc->tSamFreq0 = 0x00U;
+  pSpIIIDesc->tSamFreq2 = (uint8_t)(USBD_AUDIO_FREQ & 0xFFU);
+  pSpIIIDesc->tSamFreq1 = (uint8_t)((USBD_AUDIO_FREQ >> 8) & 0xFFU);
+  pSpIIIDesc->tSamFreq0 = (uint8_t)((USBD_AUDIO_FREQ >> 16) & 0xFFU);
   *Sze += (uint32_t)sizeof(USBD_SpeakerIIIFormatIfDescTypeDef);
 
-  /* Endpoint 1 - Standard Descriptor */
+  /* Standard AS Isochronous Audio Data Endpoint Descriptor */
   pSpEpDesc = ((USBD_SpeakerEndDescTypeDef *)(pConf + *Sze));
   pSpEpDesc->bLength = 0x09U;
   pSpEpDesc->bDescriptorType = USB_DESC_TYPE_ENDPOINT;
   pSpEpDesc->bEndpointAddress = pdev->tclasslist[pdev->classId].Eps[0].add;
-  pSpEpDesc->bmAttributes = USBD_EP_TYPE_ISOC;
+  pSpEpDesc->bmAttributes = 0x05U;
   pSpEpDesc->wMaxPacketSize = (uint16_t)USBD_AUDIO_GetEpPcktSze(pdev, 0U, 0U);
   pSpEpDesc->bInterval = 0x01U;
   pSpEpDesc->bRefresh = 0x00U;
-  pSpEpDesc->bSynchAddress = 0x00U;
+  pSpEpDesc->bSynchAddress = pdev->tclasslist[pdev->classId].Eps[1].add;
   *Sze += 0x09U;
 
-  /* Endpoint - Audio Streaming Descriptor*/
+  /* Class-Specific AS Isochronous Audio Data Endpoint Descriptor */
   pSpEpStDesc = ((USBD_SpeakerEndStDescTypeDef *)(pConf + *Sze));
   pSpEpStDesc->bLength = (uint8_t)sizeof(USBD_SpeakerEndStDescTypeDef);
   pSpEpStDesc->bDescriptorType = AUDIO_ENDPOINT_DESCRIPTOR_TYPE;
@@ -1264,6 +1265,18 @@ static void  USBD_CMPSIT_AUDIODesc(USBD_HandleTypeDef *pdev, uint32_t pConf, __I
   pSpEpStDesc->bLockDelayUnits = 0x00U;
   pSpEpStDesc->wLockDelay = 0x0000U;
   *Sze += (uint32_t)sizeof(USBD_SpeakerEndStDescTypeDef);
+
+  /* Standard AS Isochronous Synch Endpoint Descriptor */
+  pSpFbEpDesc = ((USBD_SpeakerEndDescTypeDef *)(pConf + *Sze));
+  pSpFbEpDesc->bLength = 0x09U;
+  pSpFbEpDesc->bDescriptorType = USB_DESC_TYPE_ENDPOINT;
+  pSpFbEpDesc->bEndpointAddress = pdev->tclasslist[pdev->classId].Eps[1].add;
+  pSpFbEpDesc->bmAttributes = 0x01U;
+  pSpFbEpDesc->wMaxPacketSize = 0x03U;
+  pSpFbEpDesc->bInterval = 0x01U;
+  pSpFbEpDesc->bRefresh = 0x02U;
+  pSpFbEpDesc->bSynchAddress = 0x00U;
+  *Sze += 0x09U;
 
   /* Update Config Descriptor and IAD descriptor */
   ((USBD_ConfigDescTypeDef *)pConf)->bNumInterfaces += 2U;

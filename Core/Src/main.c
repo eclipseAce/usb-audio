@@ -119,26 +119,21 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
   /* Init Device Library, add supported class and start the library. */
-  if (USBD_Init(&hUsbDeviceFS, &Class_Desc, 0) != USBD_OK)
-  {
+  if (USBD_Init(&hUsbDeviceFS, &Class_Desc, 0) != USBD_OK) {
     Error_Handler();
   }
-  static uint8_t EpAddr_AUDIO[] = { AUDIO_EPIN_ADDR, AUDIO_EPOUT_ADDR };
-  if (USBD_RegisterClassComposite(&hUsbDeviceFS, USBD_AUDIO_CLASS, CLASS_TYPE_AUDIO, &EpAddr_AUDIO[0]) != USBD_OK)
-  {
+  static uint8_t EpAddr_AUDIO[] = {AUDIO_EPOUT_ADDR, AUDIO_EPIN_ADDR};
+  if (USBD_RegisterClassComposite(&hUsbDeviceFS, USBD_AUDIO_CLASS, CLASS_TYPE_AUDIO, &EpAddr_AUDIO[0]) != USBD_OK) {
     Error_Handler();
   }
-  static uint8_t EpAddr_HID[] = { HID_EPIN_ADDR };
-  if (USBD_RegisterClassComposite(&hUsbDeviceFS, USBD_HID_CLASS, CLASS_TYPE_HID, &EpAddr_HID[0]) != USBD_OK)
-  {
+  static uint8_t EpAddr_HID[] = {HID_EPIN_ADDR};
+  if (USBD_RegisterClassComposite(&hUsbDeviceFS, USBD_HID_CLASS, CLASS_TYPE_HID, &EpAddr_HID[0]) != USBD_OK) {
     Error_Handler();
   }
-  if (USBD_AUDIO_RegisterInterface(&hUsbDeviceFS, &USBD_AUDIO_fops) != USBD_OK)
-  {
+  if (USBD_AUDIO_RegisterInterface(&hUsbDeviceFS, &USBD_AUDIO_fops) != USBD_OK) {
     Error_Handler();
   }
-  if (USBD_Start(&hUsbDeviceFS) != USBD_OK)
-  {
+  if (USBD_Start(&hUsbDeviceFS) != USBD_OK) {
     Error_Handler();
   }
   HAL_PWREx_EnableUSBVoltageDetector();

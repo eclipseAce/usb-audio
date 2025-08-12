@@ -41,9 +41,12 @@ extern "C" {
   * @{
   */
 #ifndef USBD_AUDIO_FREQ
-/* AUDIO Class Config */
 #define USBD_AUDIO_FREQ                               48000U
 #endif /* USBD_AUDIO_FREQ */
+
+#ifndef USBD_AUDIO_BITRES
+#define USBD_AUDIO_BITRES                             16U
+#endif /* USBD_AUDIO_BITRES */
 
 #ifndef USBD_MAX_NUM_INTERFACES
 #define USBD_MAX_NUM_INTERFACES                       1U
@@ -57,9 +60,13 @@ extern "C" {
 #define AUDIO_FS_BINTERVAL                            0x01U
 #endif /* AUDIO_FS_BINTERVAL */
 
-#ifndef AUDIO_OUT_EP
-#define AUDIO_OUT_EP                                  0x01U
-#endif /* AUDIO_OUT_EP */
+#ifndef AUDIO_EPIN_ADDR
+#define AUDIO_EPIN_ADDR                               0x81U
+#endif /* AUDIO_EPIN_ADDR */
+
+#ifndef AUDIO_EPOUT_ADDR
+#define AUDIO_EPOUT_ADDR                              0x01U
+#endif /* AUDIO_EPOUT_ADDR */
 
 #define USB_AUDIO_CONFIG_DESC_SIZ                     0x6DU
 #define AUDIO_INTERFACE_DESC_SIZE                     0x09U
@@ -90,6 +97,7 @@ extern "C" {
 #define AUDIO_STREAMING_INTERFACE_DESC_SIZE           0x07U
 
 #define AUDIO_CONTROL_MUTE                            0x0001U
+#define AUDIO_CONTROL_VOLUME                          0x0002U
 
 #define AUDIO_FORMAT_TYPE_I                           0x01U
 #define AUDIO_FORMAT_TYPE_III                         0x03U
@@ -104,13 +112,12 @@ extern "C" {
 #define AUDIO_OUT_TC                                  0x01U
 #define AUDIO_IN_TC                                   0x02U
 
-
-#define AUDIO_OUT_PACKET                              (uint16_t)(((USBD_AUDIO_FREQ * 2U * 2U) / 1000U))
-#define AUDIO_DEFAULT_VOLUME                          70U
+#define AUDIO_OUT_SUBFRAME                            (uint16_t)(USBD_AUDIO_BITRES / 8)
+#define AUDIO_OUT_PACKET                              (uint16_t)(((USBD_AUDIO_FREQ / 1000U + 1) * AUDIO_OUT_SUBFRAME * 2U))
 
 /* Number of sub-packets in the audio transfer buffer. You can modify this value but always make sure
   that it is an even number and higher than 3 */
-#define AUDIO_OUT_PACKET_NUM                          80U
+#define AUDIO_OUT_PACKET_NUM                          8U
 /* Total size of the audio transfer buffer */
 #define AUDIO_TOTAL_BUF_SIZE                          ((uint16_t)(AUDIO_OUT_PACKET * AUDIO_OUT_PACKET_NUM))
 

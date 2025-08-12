@@ -97,10 +97,10 @@ EndBSPDependencies */
   (uint8_t)(frq), (uint8_t)((frq >> 8)), (uint8_t)((frq >> 16))
 
 #define AUDIO_PACKET_SZE(frq) \
-  (uint8_t)(((frq * 2U * 2U) / 1000U) & 0xFFU), (uint8_t)((((frq * 2U * 2U) / 1000U) >> 8) & 0xFFU)
+  (uint8_t)(AUDIO_OUT_PACKET & 0xFFU), (uint8_t)((AUDIO_OUT_PACKET >> 8) & 0xFFU)
 
 #ifdef USE_USBD_COMPOSITE
-#define AUDIO_PACKET_SZE_WORD(frq)     (uint32_t)((((frq) * 2U * 2U)/1000U))
+#define AUDIO_PACKET_SZE_WORD(frq)     (uint32_t)AUDIO_OUT_PACKET
 #endif /* USE_USBD_COMPOSITE  */
 /**
   * @}
@@ -333,7 +333,8 @@ __ALIGN_BEGIN static uint8_t USBD_AUDIO_DeviceQualifierDesc[USB_LEN_DEV_QUALIFIE
 };
 #endif /* USE_USBD_COMPOSITE  */
 
-static uint8_t AUDIOOutEpAdd = AUDIO_OUT_EP;
+static uint8_t AUDIOInEpAdd = AUDIO_EPIN_ADDR;
+static uint8_t AUDIOOutEpAdd = AUDIO_EPOUT_ADDR;
 /**
   * @}
   */
@@ -392,7 +393,7 @@ static uint8_t USBD_AUDIO_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
 
   /* Initialize the Audio output Hardware layer */
   if (((USBD_AUDIO_ItfTypeDef *)pdev->pUserData[pdev->classId])->Init(USBD_AUDIO_FREQ,
-                                                                      AUDIO_DEFAULT_VOLUME,
+                                                                      0,
                                                                       0U) != 0U)
   {
     return (uint8_t)USBD_FAIL;
