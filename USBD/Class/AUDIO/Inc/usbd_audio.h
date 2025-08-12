@@ -68,7 +68,7 @@ extern "C" {
 #define AUDIO_EPOUT_ADDR                              0x01U
 #endif /* AUDIO_EPOUT_ADDR */
 
-#define USB_AUDIO_CONFIG_DESC_SIZ                     0x6DU
+#define USB_AUDIO_CONFIG_DESC_SIZ                     0x76U
 #define AUDIO_INTERFACE_DESC_SIZE                     0x09U
 #define USB_AUDIO_DESC_SIZ                            0x09U
 #define AUDIO_STANDARD_ENDPOINT_DESC_SIZE             0x09U
@@ -104,10 +104,20 @@ extern "C" {
 
 #define AUDIO_ENDPOINT_GENERAL                        0x01U
 
-#define AUDIO_REQ_GET_CUR                             0x81U
 #define AUDIO_REQ_SET_CUR                             0x01U
+#define AUDIO_REQ_SET_MIN                             0x02U
+#define AUDIO_REQ_SET_MAX                             0x03U
+#define AUDIO_REQ_SET_RES                             0x04U
+#define AUDIO_REQ_GET_CUR                             0x81U
+#define AUDIO_REQ_GET_MIN                             0x82U
+#define AUDIO_REQ_GET_MAX                             0x83U
+#define AUDIO_REQ_GET_RES                             0x84U
 
 #define AUDIO_OUT_STREAMING_CTRL                      0x02U
+
+#define AUDIO_VOL_MIN                                 0xA000U    /* -96dB */
+#define AUDIO_VOL_MAX                                 0x0000U    /*   0dB */
+#define AUDIO_VOL_RES                                 0x0300U    /*   3dB */
 
 #define AUDIO_OUT_TC                                  0x01U
 #define AUDIO_IN_TC                                   0x02U
@@ -121,22 +131,6 @@ extern "C" {
 /* Total size of the audio transfer buffer */
 #define AUDIO_TOTAL_BUF_SIZE                          ((uint16_t)(AUDIO_OUT_PACKET * AUDIO_OUT_PACKET_NUM))
 
-/* Audio Commands enumeration */
-typedef enum
-{
-  AUDIO_CMD_START = 1,
-  AUDIO_CMD_PLAY,
-  AUDIO_CMD_STOP,
-} AUDIO_CMD_TypeDef;
-
-
-typedef enum
-{
-  AUDIO_OFFSET_NONE = 0,
-  AUDIO_OFFSET_HALF,
-  AUDIO_OFFSET_FULL,
-  AUDIO_OFFSET_UNKNOWN,
-} AUDIO_OffsetTypeDef;
 /**
   * @}
   */
@@ -145,37 +139,22 @@ typedef enum
 /** @defgroup USBD_CORE_Exported_TypesDefinitions
   * @{
   */
-typedef struct
-{
-  uint8_t cmd;
-  uint8_t data[USB_MAX_EP0_SIZE];
-  uint8_t len;
-  uint8_t unit;
-} USBD_AUDIO_ControlTypeDef;
-
 
 typedef struct
 {
   uint32_t alt_setting;
-  uint8_t buffer[AUDIO_TOTAL_BUF_SIZE];
-  AUDIO_OffsetTypeDef offset;
-  uint8_t rd_enable;
+  uint8_t buffer[AUDIO_TOTAL_BUF_SIZE + AUDIO_OUT_PACKET];
+  uint8_t playing;
   uint16_t rd_ptr;
   uint16_t wr_ptr;
-  USBD_AUDIO_ControlTypeDef control;
+  uint16_t fb_fnsof;
+  uint32_t fb_value;
+  uint32_t fb_value_norm;
+  uint8_t mute;
+  int16_t volume;
+  USBD_SetupReqTypedef setup_req;
+  uint8_t setup_data[USB_MAX_EP0_SIZE];
 } USBD_AUDIO_HandleTypeDef;
-
-
-typedef struct
-{
-  int8_t (*Init)(uint32_t AudioFreq, uint32_t Volume, uint32_t options);
-  int8_t (*DeInit)(uint32_t options);
-  int8_t (*AudioCmd)(uint8_t *pbuf, uint32_t size, uint8_t cmd);
-  int8_t (*VolumeCtl)(uint8_t vol);
-  int8_t (*MuteCtl)(uint8_t cmd);
-  int8_t (*PeriodicTC)(uint8_t *pbuf, uint32_t size, uint8_t cmd);
-  int8_t (*GetState)(void);
-} USBD_AUDIO_ItfTypeDef;
 
 /*
  * Audio Class specification release 1.0
@@ -312,10 +291,6 @@ extern USBD_ClassTypeDef USBD_AUDIO;
 /** @defgroup USB_CORE_Exported_Functions
   * @{
   */
-uint8_t USBD_AUDIO_RegisterInterface(USBD_HandleTypeDef *pdev,
-                                     USBD_AUDIO_ItfTypeDef *fops);
-
-void USBD_AUDIO_Sync(USBD_HandleTypeDef *pdev, AUDIO_OffsetTypeDef offset);
 
 #ifdef USE_USBD_COMPOSITE
 uint32_t USBD_AUDIO_GetEpPcktSze(USBD_HandleTypeDef *pdev, uint8_t If, uint8_t Ep);

@@ -23,8 +23,8 @@
 /* USER CODE BEGIN Includes */
 #include "usbd_core.h"
 #include "usbd_desc.h"
+#include "usbd_composite_builder.h"
 #include "usbd_audio.h"
-#include "usbd_audio_if.h"
 #include "usbd_hid.h"
 /* USER CODE END Includes */
 
@@ -118,6 +118,8 @@ int main(void)
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
 
+  HAL_PWREx_EnableUSBVoltageDetector();
+
   /* Init Device Library, add supported class and start the library. */
   if (USBD_Init(&hUsbDeviceFS, &Class_Desc, 0) != USBD_OK) {
     Error_Handler();
@@ -130,13 +132,12 @@ int main(void)
   if (USBD_RegisterClassComposite(&hUsbDeviceFS, USBD_HID_CLASS, CLASS_TYPE_HID, &EpAddr_HID[0]) != USBD_OK) {
     Error_Handler();
   }
-  if (USBD_AUDIO_RegisterInterface(&hUsbDeviceFS, &USBD_AUDIO_fops) != USBD_OK) {
+  if (USBD_CMPSIT_SetClassID(&hUsbDeviceFS, CLASS_TYPE_AUDIO, 0) == 0xFF) {
     Error_Handler();
   }
   if (USBD_Start(&hUsbDeviceFS) != USBD_OK) {
     Error_Handler();
   }
-  HAL_PWREx_EnableUSBVoltageDetector();
 
   /* USER CODE END 2 */
 

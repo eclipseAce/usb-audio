@@ -1216,7 +1216,7 @@ static void  USBD_CMPSIT_AUDIODesc(USBD_HandleTypeDef *pdev, uint32_t pConf, __I
 
   /* USB Speaker Standard AS Interface Descriptor -Audio Streaming Operational */
   /* Interface 1, Alternate Setting 1*/
-  __USBD_CMPSIT_SET_IF(pdev->tclasslist[pdev->classId].Ifs[1], 0x01U, 0x01U, USB_DEVICE_CLASS_AUDIO, \
+  __USBD_CMPSIT_SET_IF(pdev->tclasslist[pdev->classId].Ifs[1], 0x01U, 0x02U, USB_DEVICE_CLASS_AUDIO, \
                        AUDIO_SUBCLASS_AUDIOSTREAMING, AUDIO_PROTOCOL_UNDEFINED, 0U);
 
   /* USB Speaker Audio Streaming Interface Descriptor */
@@ -1229,7 +1229,7 @@ static void  USBD_CMPSIT_AUDIODesc(USBD_HandleTypeDef *pdev, uint32_t pConf, __I
   pSpStrDesc->wFormatTag = 0x0001U;
   *Sze += (uint32_t)sizeof(USBD_SpeakerStreamIfDescTypeDef);
 
-  /* USB Speaker Audio Type III Format Interface Descriptor */
+  /* USB Speaker Audio Type I Format Interface Descriptor */
   pSpIIIDesc = ((USBD_SpeakerIIIFormatIfDescTypeDef *)(pConf + *Sze));
   pSpIIIDesc->bLength = (uint8_t)sizeof(USBD_SpeakerIIIFormatIfDescTypeDef);
   pSpIIIDesc->bDescriptorType = AUDIO_INTERFACE_DESCRIPTOR_TYPE;
