@@ -41,9 +41,9 @@ extern "C" {
 #define AUDIO_IN_EP                                   0x81U
 #endif /* AUDIO_IN_EP */
 
-#define USBD_AUDIO_VOL_MIN                            0xA000U    /* -96dB */
-#define USBD_AUDIO_VOL_MAX                            0x0000U    /*   0dB */
-#define USBD_AUDIO_VOL_RES                            0x0300U    /*   3dB */
+#define USBD_AUDIO_VOL_MIN                            (int16_t)0xA000    /* -96dB */
+#define USBD_AUDIO_VOL_MAX                            (int16_t)0x0000    /*   0dB */
+#define USBD_AUDIO_VOL_RES                            (int16_t)0x0300    /*   3dB */
 
 #define USB_AUDIO_CONFIG_DESC_SIZ                     0x76U
 #define AUDIO_INTERFACE_DESC_SIZE                     0x09U

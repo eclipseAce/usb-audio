@@ -128,10 +128,10 @@ int main(void)
   LCD_DrawRect(0, 0, 240, 240, 0xFFFF);
   LCD_Sync();
 
-  static arm_rfft_fast_instance_f32 S;
-  static float32_t inBuf[N_SAMPLES] = { 0.0 };
-  static float32_t outBuf[N_SAMPLES] = { 0.0 };
-  arm_rfft_fast_init_f32(&S, N_SAMPLES);
+  // static arm_rfft_fast_instance_f32 S;
+  // static float32_t inBuf[N_SAMPLES] = { 0.0 };
+  // static float32_t outBuf[N_SAMPLES] = { 0.0 };
+  // arm_rfft_fast_init_f32(&S, N_SAMPLES);
 
   /* USER CODE END 2 */
 
@@ -139,8 +139,8 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    AUDIO_WaitForSamples(inBuf, N_SAMPLES);
-    arm_rfft_fast_f32(&S, inBuf, outBuf, 0);
+    // AUDIO_WaitForSamples(inBuf, N_SAMPLES);
+    // arm_rfft_fast_f32(&S, inBuf, outBuf, 0);
 //    arm_cmplx_mag_f32(outBuf, inBuf, N_SAMPLES);
 
     float32_t bucketVals[BAR_COUNT] = { 0.0 };
@@ -170,69 +170,69 @@ int main(void)
 //        }
 //      }
 //    }
-    uint8_t minMaxInit = 0;
-    float32_t bucketValMax;
-    float32_t bucketValMin;
-    for (int i = 0; i < BAR_COUNT; i++) {
-      float32_t real = outBuf[i * 2];
-      float32_t imag = outBuf[i * 2 + 1];
-      float32_t db;
-      if (real != 0 || imag != 0) {
-        db = 10.0 * log10(pow(real, 2) + pow(imag, 2));
-      } else {
-        db = 0;
-      }
-      if (minMaxInit) {
-        if (db > bucketValMax) {
-          bucketValMax = db;
-        }
-        if (db < bucketValMin) {
-          bucketValMin = db;
-        }
-      } else {
-        bucketValMax = db;
-        bucketValMin = db;
-        minMaxInit = 1;
-      }
-      bucketVals[i] = db;
-    }
-    for (int i = 0; i < BAR_COUNT; i++) {
-      if (bucketValMax != bucketValMin) {
-        bucketVals[i] = (bucketVals[i] - bucketValMin) / (bucketValMax - bucketValMin);
-      } else {
-        bucketVals[i] = 0;
-      }
-    }
+    // uint8_t minMaxInit = 0;
+    // float32_t bucketValMax;
+    // float32_t bucketValMin;
+    // for (int i = 0; i < BAR_COUNT; i++) {
+    //   float32_t real = outBuf[i * 2];
+    //   float32_t imag = outBuf[i * 2 + 1];
+    //   float32_t db;
+    //   if (real != 0 || imag != 0) {
+    //     db = 10.0 * log10(pow(real, 2) + pow(imag, 2));
+    //   } else {
+    //     db = 0;
+    //   }
+    //   if (minMaxInit) {
+    //     if (db > bucketValMax) {
+    //       bucketValMax = db;
+    //     }
+    //     if (db < bucketValMin) {
+    //       bucketValMin = db;
+    //     }
+    //   } else {
+    //     bucketValMax = db;
+    //     bucketValMin = db;
+    //     minMaxInit = 1;
+    //   }
+    //   bucketVals[i] = db;
+    // }
+    // for (int i = 0; i < BAR_COUNT; i++) {
+    //   if (bucketValMax != bucketValMin) {
+    //     bucketVals[i] = (bucketVals[i] - bucketValMin) / (bucketValMax - bucketValMin);
+    //   } else {
+    //     bucketVals[i] = 0;
+    //   }
+    // }
 
-    static uint8_t lastInit = 0;
-    static float32_t lastBucketVals[BAR_COUNT] = { 0.0 };
-    for (int i = 0; i < BAR_COUNT; i++) {
-      if (lastInit) {
-        if (bucketVals[i] < lastBucketVals[i]) {
-          lastBucketVals[i] = bucketVals[i] * SMOOTH_DOWN + lastBucketVals[i] * (1 - SMOOTH_DOWN);
-        } else {
-          lastBucketVals[i] = bucketVals[i] * SMOOTH_UP + lastBucketVals[i] * (1 - SMOOTH_UP);
-        }
-      } else {
-        lastBucketVals[i] = bucketVals[i];
-        lastInit = 1;
-      }
-    }
+    // static uint8_t lastInit = 0;
+    // static float32_t lastBucketVals[BAR_COUNT] = { 0.0 };
+    // for (int i = 0; i < BAR_COUNT; i++) {
+    //   if (lastInit) {
+    //     if (bucketVals[i] < lastBucketVals[i]) {
+    //       lastBucketVals[i] = bucketVals[i] * SMOOTH_DOWN + lastBucketVals[i] * (1 - SMOOTH_DOWN);
+    //     } else {
+    //       lastBucketVals[i] = bucketVals[i] * SMOOTH_UP + lastBucketVals[i] * (1 - SMOOTH_UP);
+    //     }
+    //   } else {
+    //     lastBucketVals[i] = bucketVals[i];
+    //     lastInit = 1;
+    //   }
+    // }
 
 
-    LCD_DrawRect(0, 0, 240, 240, 0xFFFF);
-    for (int i = 0; i < BAR_COUNT; i++) {
-      uint16_t h = (uint16_t) (240.0 * lastBucketVals[i]);
-      uint16_t w = 240 / BAR_COUNT;
-      uint16_t x = i * w;
-      uint16_t y = 0;
-      LCD_DrawRect(x, y, w, h, 0x0FF0);
-    }
+    // LCD_DrawRect(0, 0, 240, 240, 0xFFFF);
+    // for (int i = 0; i < BAR_COUNT; i++) {
+    //   uint16_t h = (uint16_t) (240.0 * lastBucketVals[i]);
+    //   uint16_t w = 240 / BAR_COUNT;
+    //   uint16_t x = i * w;
+    //   uint16_t y = 0;
+    //   LCD_DrawRect(x, y, w, h, 0x0FF0);
+    // }
 
-    LCD_DrawRect(0, 0, 10, 20, 0xF00F);
+    // LCD_DrawRect(0, 0, 10, 20, 0xF00F);
 
-    LCD_Sync();
-    HAL_Delay(10);
+    // LCD_Sync();
+    // HAL_Delay(10);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

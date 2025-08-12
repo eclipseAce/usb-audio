@@ -658,7 +658,7 @@ static uint8_t USBD_AUDIO_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum) {
     /* Get received data packet length */
     packet_size = (uint16_t)USBD_LL_GetRxDataSize(pdev, epnum);
 
-    int16_t *ptr = (int16_t *)&haudio->buffer;
+    int16_t *ptr = (int16_t *)&haudio->buffer[haudio->wr_ptr];
     for (uint16_t i = 0; i < packet_size / 2 / sizeof(int16_t); i++) {
       int16_t *samp_l = &ptr[i * 2];
       int16_t *samp_r = &ptr[i * 2 + 1];
