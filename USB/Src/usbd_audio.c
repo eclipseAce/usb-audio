@@ -323,6 +323,7 @@ static int16_t USBD_AUDIO_ApplyVolumeControl(int16_t sample, int16_t volume) {
   int16_t shifts = (USBD_AUDIO_VOL_MAX - volume + (USBD_AUDIO_VOL_RES / 2)) / USBD_AUDIO_VOL_RES;
   int16_t shifts2 = shifts >> 1;
   if (shifts & 1) {
+    shifts2++;
     sample >>= shifts2;
     sample += (sample >> 1);
   } else {
