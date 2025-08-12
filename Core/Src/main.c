@@ -61,12 +61,6 @@ PCD_HandleTypeDef hpcd_USB_OTG_FS;
 
 /* USER CODE BEGIN PV */
 USBD_HandleTypeDef hUsbDeviceFS;
-
-extern volatile uint8_t print_flag;
-extern volatile int32_t last_delta;
-extern volatile uint32_t last_fbval;
-extern volatile int32_t rd_ptr_off;
-extern volatile int32_t wr_ptr_off;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -145,10 +139,6 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    float fbval = (float)(last_fbval >> 8) / (1<<14);
-    printf("delta=%5ld, fbval=%9ld\r\n", last_delta, (long)(fbval * 1000000));
-    // HAL_Delay(500);
-
     AUDIO_WaitForSamples(inBuf, N_SAMPLES);
     arm_rfft_fast_f32(&S, inBuf, outBuf, 0);
 //    arm_cmplx_mag_f32(outBuf, inBuf, N_SAMPLES);

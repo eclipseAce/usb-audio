@@ -96,9 +96,6 @@ extern "C" {
 #define AUDIO_IN_TC                                   0x02U
 
 #define AUDIO_OUT_PACKET                              (uint16_t)(((USBD_AUDIO_FREQ / 1000U + 1) * 2U * 2U))
-#define AUDIO_DEFAULT_VOLUME                          70U
-
-#define AUDIO_FB_VALUE                                (uint32_t)((48U * (1<<14)) << 8)
 
 /* Number of sub-packets in the audio transfer buffer. You can modify this value but always make sure
   that it is an even number and higher than 3 */
@@ -109,11 +106,12 @@ extern "C" {
 typedef struct {
   uint32_t alt_setting;
   uint8_t buffer[AUDIO_TOTAL_BUF_SIZE + AUDIO_OUT_PACKET];
-  uint8_t tx_enabled;
-  uint8_t fb_busy;
-  uint8_t fb_data[3];
+  uint8_t playing;
   uint16_t rd_ptr;
   uint16_t wr_ptr;
+  uint16_t fb_fnsof;
+  uint32_t fb_value;
+  uint32_t fb_value_norm;
   uint8_t mute;
   int16_t volume;
   USBD_SetupReqTypedef setup_req;
