@@ -40,28 +40,17 @@ add_subdirectory(cmake/stm32cubemx)
 # Link directories setup
 target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined library search paths
-    ./DSP/Lib
 )
 
 # Add sources to executable
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user sources here
-    ./USB/Src/usbd_core.c
-    ./USB/Src/usbd_ctlreq.c
-    ./USB/Src/usbd_ioreq.c
-    ./USB/Src/usbd_conf.c
-    ./USB/Src/usbd_desc.c
-    ./USB/Src/usbd_audio.c
-
-    ./LCD/Src/lcd_st7789.c
+    ./Core/Src/usbd.c
 )
 
 # Add include paths
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined include paths
-    ./DSP/Inc
-    ./USB/Inc
-    ./LCD/Inc
 )
 
 # Add project symbols (macros)
@@ -77,5 +66,4 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
     stm32cubemx
 
     # Add user defined libraries
-    arm_cortexM7lfdp_math
 )
