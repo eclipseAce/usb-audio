@@ -36,21 +36,29 @@ typedef struct usb_setup_req {
   uint16_t wLength;
 } USB_SetupReqTypedef;
 
-__ALIGN_BEGIN uint8_t USB_DeviceDesc[0x12U] __ALIGN_END = {
-    0x12,                 /* bLength: Length of descriptor in bytes */
-    USB_DESC_TYPE_DEVICE, /* bDescriptorType: DEVICE desriptor type */
-    0x00, 0x02,           /* bcdUSB: USB specification release number */
-    0x00,                 /* bDeviceClass: Class code */
-    0x00,                 /* bDeviceSubClass: Subclass code */
-    0x00,                 /* bDeviceProtocol: Protocol code */
-    0x08,                 /* bMaxPacketSize0: Maximum packet size for endpoint 0 */
-    0x00, 0x00,           /* idVendor: Vendor ID */
-    0x00, 0x00,           /* idProduct: Product ID */
-    0x00, 0x00,           /* bcdDevice: Device release number */
-    0x00,                 /* iManufacturer: Index of manufacturer string descriptor */
-    0x00,                 /* iProduct: Index of product string descriptor */
-    0x00,                 /* iSerialNumber: Index of serial number string descriptor */
-    0x00,                 /* bNumConfigurations: Number of configurations */
+__ALIGN_BEGIN uint8_t USB_DeviceDesc[] __ALIGN_END = {
+    /* Device Descriptor */
+    0x12,       /*bLength */
+    0x01,       /*bDescriptorType*/
+    0x00, 0x02, /*bcdUSB */
+    0xEF,       /*bDeviceClass*/
+    0x02,       /*bDeviceSubClass*/
+    0x01,       /*bDeviceProtocol*/
+    0x40,       /*bMaxPacketSize*/
+    0x83, 0x04, /*idVendor*/
+    0x40, 0x57, /*idProduct*/
+    0x00, 0x01, /*bcdDevice rel. 2.00*/
+    0x01,       /*Index of manufacturer  string*/
+    0x02,       /*Index of product string*/
+    0x03,       /*Index of serial number string*/
+    0x01        /*bNumConfigurations*/
+};
+
+__ALIGN_BEGIN uint8_t USB_StrDesc_0[] __ALIGN_END = {
+    /* String Descriptor 0 */
+    0x04,       /* bLength: Length of descriptor in bytes */
+    0x03,       /* bDescriptorType: STRING descriptor type */
+    0x09, 0x04, /* wLANGID: Language ID */
 };
 
 void HAL_PCD_SetupStageCallback(PCD_HandleTypeDef *hpcd) {
