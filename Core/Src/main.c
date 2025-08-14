@@ -117,16 +117,11 @@ int main(void)
   MX_USB_OTG_FS_PCD_Init();
   /* USER CODE BEGIN 2 */
 
-  hdev.address = 0U;
-  hdev.configuration = 0U;
-  memset(hdev.alt_settings, 0, sizeof(hdev.alt_settings));
   hpcd_USB_OTG_FS.pData = &hdev;
 
   HAL_PCDEx_SetRxFiFo(&hpcd_USB_OTG_FS, 0x120);
   HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_FS, 0, 0x40);
   HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_FS, 1, 0x80);
-
-  HAL_PCD
   
   if (HAL_PCD_Start(&hpcd_USB_OTG_FS) != HAL_OK) {
     Error_Handler();

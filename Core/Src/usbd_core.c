@@ -1,5 +1,7 @@
 #include "usbd_core.h"
 
+#include <string.h>
+
 #include "stm32h7xx.h"
 #include "usbd_desc.h"
 
@@ -138,11 +140,15 @@ void HAL_PCD_SetupStageCallback(PCD_HandleTypeDef *hpcd) {
 }
 
 void HAL_PCD_DataOutStageCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum) {
-  return;
+  if ((epnum & 0x7FU) == 0) {
+    HAL_PCD_EP_Transmit(hpcd, epnum, NULL, 0U);
+  }
 }
 
 void HAL_PCD_DataInStageCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum) {
-  return;
+  if ((epnum & 0x7FU) == 0) {
+    HAL_PCD_EP_Receive(hpcd, epnum, NULL, 0U);
+  }
 }
 
 void HAL_PCD_SOFCallback(PCD_HandleTypeDef *hpcd) {
@@ -150,7 +156,13 @@ void HAL_PCD_SOFCallback(PCD_HandleTypeDef *hpcd) {
 }
 
 void HAL_PCD_ResetCallback(PCD_HandleTypeDef *hpcd) {
-  return;
+  USB_DeviceHandleTypeDef *hdev = (USB_DeviceHandleTypeDef *)hpcd->pData;
+  hdev->address = 0U;
+  hdev->configuration = 0U;
+  memset(hdev->alt_settings, 0, sizeof(hdev->alt_settings));
+
+  HAL_PCD_EP_Open(hpcd, 0x00, 64, 0x00);
+  HAL_PCD_EP_Open(hpcd, 0x80, 64, 0x00);
 }
 
 void HAL_PCD_SuspendCallback(PCD_HandleTypeDef *hpcd) {
