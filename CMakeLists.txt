@@ -45,7 +45,8 @@ target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
 # Add sources to executable
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user sources here
-    ./Core/Src/usbd.c
+    ./Core/Src/usbd_core.c
+    ./Core/Src/usbd_desc.c
 )
 
 # Add include paths

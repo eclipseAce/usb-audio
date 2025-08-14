@@ -37,10 +37,13 @@ class Descriptor:
             lines.append("")
             lines += child.generate()
         return lines
+    
+    def generate_prototype(self, ident: str):
+        return f'uint8_t {ident}[{self.total_length}]'
 
     def generate_declaration(self, ident: str):
         lines = []
-        lines.append(f"__ALIGN_BEGIN unsigned char {ident}[{self.total_length}] __ALIGN_END = {{")
+        lines.append(f"__ALIGN_BEGIN {self.generate_prototype(ident)} __ALIGN_END = {{")
         lines += ["  " + line for line in self.generate()]
         lines.append("};")
         return lines
@@ -403,11 +406,31 @@ for index, string in enumerate(string_allocator.strings):
             Field(2, "bString", string),
         ],
     )
-    descriptors.append((f"StringDescriptor_{index}", descriptor))
+    entry = (f"StringDescriptor_{index}", descriptor)
+    descriptors.append(entry)
 
-lines = []
-for name, descriptor in descriptors:
+with open('./Core/Src/usbd_desc.c', 'w') as file:
+    lines = []
+    lines.append('#include "usbd_desc.h"')
+    for name, descriptor in descriptors:
+        lines.append("")
+        lines += descriptor.generate_declaration(name)
+    
+    n_strings = len(string_allocator.strings)
+    lines.append(f'uint8_t *StringDescriptors[{n_strings+1}] = {{')
+    lines.append(f'  LangCodesDescriptor,')
+    for index in range(n_strings):
+        lines.append(f'  StringDescriptor_{index},')
+    lines.append('};')
+
+    file.write("\n".join(lines))
+
+with open('./Core/Inc/usbd_desc.h', 'w') as file:
+    lines = []
+    lines.append('#include "stm32h7xx.h"')
+    for name, descriptor in descriptors:
+        lines.append("")
+        lines.append(f'extern {descriptor.generate_prototype(name)};')
     lines.append("")
-    lines += descriptor.generate_declaration(name)
-
-print("\n".join(lines))
+    lines.append(f'extern uint8_t *StringDescriptors[{len(string_allocator.strings)+1}];')
+    file.write("\n".join(lines))
