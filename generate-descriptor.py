@@ -1,252 +1,413 @@
-class Field:
-    def __init__(self, name, size, value, compute):
-        self.name = name
-        self.size = size
-        self.value = value
-        self.compute = compute
+from enum import Enum
+from functools import reduce
 
 
-class FieldCollection:
-    def __init__(self, description, parent=None):
+class StringAllocator:
+    def __init__(self):
+        self.strings = list[str]()
+
+    def allocate(self, string) -> "StringInstance":
+        for index, item in enumerate(self.strings):
+            if item == string:
+                return index
+        self.strings.append(string)
+        return StringInstance(string, len(self.strings))
+
+
+class StringInstance:
+    def __init__(self, string, index):
+        self.string = string
+        self.index = index
+
+
+class Descriptor:
+    def __init__(self, description, fields: list["Field"], children: list["Descriptor"] = None):
         self.description = description
-        self.parent = parent
-        if parent != None:
-            parent.children.append(self)
-        self.fields = list[Field]()
-        self.fields_dict = dict[str, Field]()
-        self.children = list[FieldCollection]()
-        self.length = 0
-        self.total_length = 0
+        self.fields = fields
+        self.children = children if children != None else []
+        self.length = reduce(lambda a, b: a + b, [f.length for f in self.fields], 0)
+        self.total_length = self.length + reduce(lambda a, b: a + b, [c.total_length for c in self.children], 0)
 
-    def add(self, name, size, value=None, compute=None):
-        field = Field(name, size, value, compute)
-        self.fields.append(field)
-        self.fields_dict[name] = field
-        length = size
-        if isinstance(value, list) or isinstance(value, str):
-            length *= len(value)
-        self.length += length
-        self.total_length += length
-
-        parent = self.parent
-        while parent != None:
-            parent.total_length += length
-            parent = parent.parent
-
-    def add_byte(self, name, value=None, compute=None):
-        self.add(name, size=1, value=value, compute=compute)
-
-    def add_word(self, name, value=None, compute=None):
-        self.add(name, size=2, value=value, compute=compute)
-
-    def add_medium(self, name, value=None, compute=None):
-        self.add(name, size=3, value=value, compute=compute)
-
-    def add_dword(self, name, value=None, compute=None):
-        self.add(name, size=4, value=value, compute=compute)
-
-    def to_declaration(self, identifier):
-        return "\n".join(
-            [
-                f"__ALIGN_BEGIN unsigned char {identifier}[{self.total_length}] __ALIGN_END = {{",
-                *[f"  {line}" for line in self.to_hex_block()],
-                "}};",
-            ]
-        )
-
-    def to_hex_block(self, leading_spaces=2):
-        leading = " " * leading_spaces
-        lines = [f"{leading}/* {self.description} */"]
+    def generate(self):
+        lines = []
+        lines.append(f"/* {self.description} */")
         for field in self.fields:
-            value = field.value
-            if field.compute == "length":
-                value = self.length
-            if field.compute == "total_length":
-                value = self.total_length
-            if isinstance(value, str):
-                value = [ord(ch) for ch in value]
-            if not isinstance(value, list):
-                value = [value]
-            for index, item in enumerate(value):
-                elems = "".join(
-                    [f"0x{((item >> (i * 8)) & 0xFF):02X}, " for i in range(field.size)]
-                )
-                comment = f"{field.name}"
-                if len(value) > 1:
-                    comment += f"[{index}]"
-                spaces = " " * ((4 - field.size) * 6 + 2)
-                lines.append(f"{leading}{elems}{spaces}/* {comment} */")
+            lines += field.generate(self)
         for child in self.children:
             lines.append("")
-            lines += child.to_hex_block()
+            lines += child.generate()
+        return lines
+
+    def generate_declaration(self, ident: str):
+        lines = []
+        lines.append(f"__ALIGN_BEGIN unsigned char {ident}[{self.total_length}] __ALIGN_END = {{")
+        lines += ["  " + line for line in self.generate()]
+        lines.append("};")
         return lines
 
 
-Strings = list[tuple[str, FieldCollection]]()
+class Field:
+    def __init__(self, size, name, value):
+        self.size = size
+        self.name = name
+        self.value = value
+        if isinstance(value, list) or isinstance(value, str):
+            self.length = size * len(value)
+        else:
+            self.length = size
+
+    def generate(self, descriptor: "Descriptor"):
+        value = self.value
+        if isinstance(value, str):
+            value = [ord(ch) for ch in value]
+        if not isinstance(value, list):
+            value = [value]
+        lines = []
+        for index, item in enumerate(value):
+            comment = f"{self.name}[{index}]" if len(value) > 1 else self.name
+            if isinstance(item, StringInstance):
+                comment += f' = "{item.string}"'
+                item = item.index
+            elif isinstance(item, DescriptorLength):
+                item = descriptor.total_length if item.total else descriptor.length
+            elif isinstance(item, Enum):
+                comment += f" = {item.name}"
+                item = item.value
+            spaces = " " * ((4 - self.size) * 6 + 2)
+            line = [(item >> (i * 8)) & 0xFF for i in range(self.size)]
+            line = "".join([f"0x{x:02X}, " for x in line])
+            line = f"{line}{spaces}/* {comment} */"
+            lines.append(line)
+        return lines
 
 
-def get_string_index(s):
-    for index, item in enumerate(Strings):
-        if item[0] == s:
-            return index
-    index = len(Strings) + 1
-    String = FieldCollection(f"String Descriptor '{s}'")
-    String.add_byte("bLength", compute="length")
-    String.add_byte("bDescriptorType", value=3)
-    String.add_word("bString", value=s)
-    Strings.append((s, String))
-    return index
+class DescriptorLength:
+    def __init__(self, total=False):
+        self.total = total
 
 
-Dev = FieldCollection("Standard Device Descriptor")
-Dev.add_byte("bLength", compute="length")
-Dev.add_byte("bDescriptorType", value=1)
-Dev.add_word("bcdUSB", value=0x0200)
-Dev.add_byte("bDeviceClass", value=0xEF)
-Dev.add_byte("bDeviceSubClass", value=0x02)
-Dev.add_byte("bDeviceProtocol", value=0x00)
-Dev.add_byte("bMaxPacketSize0", value=64)
-Dev.add_word("idVendor", value=0x0483)
-Dev.add_word("idProduct", value=0x5740)
-Dev.add_word("bcdDevice", value=0x0100)
-Dev.add_byte("iManufacturer", value=get_string_index("STMicroelectronics"))
-Dev.add_byte("iProduct", value=get_string_index("STM32 Audio"))
-Dev.add_byte("iSerialNumber", value=get_string_index("1234567890123"))
-Dev.add_byte("bNumConfigurations", value=1)
-
-Cfg = FieldCollection("Standard Configuration Descriptor")
-Cfg.add_byte("bLength", compute="length")
-Cfg.add_byte("bDescriptorType", value=2)
-Cfg.add_word("wTotalLength", compute="total_length")
-Cfg.add_byte("bNumInterfaces", value=2)
-Cfg.add_byte("bConfigurationValue", value=1)
-Cfg.add_byte("iConfiguration", value=0)
-Cfg.add_byte("bmAttributes", value=0xC0)
-Cfg.add_byte("MaxPower", value=500)
-
-StdAcIf = FieldCollection("Standard AC Interface Descriptor", parent=Cfg)
-StdAcIf.add_byte("bLength", compute="length")
-StdAcIf.add_byte("bDescriptorType", value=4)
-StdAcIf.add_byte("bInterfaceNumber", value=0)
-StdAcIf.add_byte("bAlternateSetting", value=0)
-StdAcIf.add_byte("bNumEndpoints", value=0)
-StdAcIf.add_byte("bInterfaceClass", value=0x01)
-StdAcIf.add_byte("bInterfaceSubClass", value=0x01)
-StdAcIf.add_byte("bInterfaceProtocol", value=0)
-StdAcIf.add_byte("iInterface", value=0)
-
-CsAcIfHdr = FieldCollection('Class-Specific AC Interface Header Descriptor', parent=StdAcIf)
-CsAcIfHdr.add_byte("bLength", compute="length")
-CsAcIfHdr.add_byte("bDescriptorType", value=0x24)
-CsAcIfHdr.add_byte("bDescriptorSubtype", value=0x01)
-CsAcIfHdr.add_word("bcdADC", value=0x0100)
-CsAcIfHdr.add_word("wTotalLength", compute='total_length')
-CsAcIfHdr.add_byte("bInCollection", value=1)
-CsAcIfHdr.add_byte("baInterfaceNr", value=[1])
-
-It = FieldCollection('Input Terminal Descriptor', parent=CsAcIfHdr)
-It.add_byte('bLength', compute='length')
-It.add_byte('bDescriptorType', value=0x24)
-It.add_byte('bDescriptorSubtype', value=0x02)
-It.add_byte('bTerminalID', value=1)
-It.add_word('wTerminalType', value=0x0101)
-It.add_byte('bAssocTerminal', value=0)
-It.add_byte('bNrChannels', value=2)
-It.add_word('wChannelConfig', value=0x0003)
-It.add_byte('iChannelNames', value=0)
-It.add_byte('iTerminal', value=0)
-
-Fu = FieldCollection('Feature Unit Descriptor', parent=CsAcIfHdr)
-Fu.add_byte('bLength', compute='length')
-Fu.add_byte('bDescriptorType', value=0x24)
-Fu.add_byte('bDescriptorSubtype', value=0x06)
-Fu.add_byte('bUnitID', value=2)
-Fu.add_byte('bSourceID', value=1)
-Fu.add_byte('bControlSize', value=1)
-Fu.add_byte('bmaControls', value=[0x03, 0x00, 0x00])
-Fu.add_byte('iFeature', value=0)
-
-Ot = FieldCollection('Output Terminal Descriptor', parent=CsAcIfHdr)
-Ot.add_byte('bLength', compute='length')
-Ot.add_byte('bDescriptorType', value=0x24)
-Ot.add_byte('bDescriptorSubtype', value=0x03)
-Ot.add_byte('bTerminalID', value=3)
-Ot.add_word('wTerminalType', value=0x0301)
-Ot.add_byte('bAssocTerminal', value=0)
-Ot.add_byte('bSourceID', value=2)
-Ot.add_byte('iTerminal', value=0)
-
-StdAsIf_0 = FieldCollection("Standard AS Interface Descriptor (AlternateSetting: 0)", parent=Cfg)
-StdAsIf_0.add_byte("bLength", compute="length")
-StdAsIf_0.add_byte("bDescriptorType", value=4)
-StdAsIf_0.add_byte("bInterfaceNumber", value=1)
-StdAsIf_0.add_byte("bAlternateSetting", value=0)
-StdAsIf_0.add_byte("bNumEndpoints", value=0)
-StdAsIf_0.add_byte("bInterfaceClass", value=0x01)
-StdAsIf_0.add_byte("bInterfaceSubClass", value=0x02)
-StdAsIf_0.add_byte("bInterfaceProtocol", value=0)
-StdAsIf_0.add_byte("iInterface", value=0)
-
-StdAsIf_1 = FieldCollection("Standard AS Interface Descriptor (AlternateSetting: 1)", parent=Cfg)
-StdAsIf_1.add_byte("bLength", compute="length")
-StdAsIf_1.add_byte("bDescriptorType", value=4)
-StdAsIf_1.add_byte("bInterfaceNumber", value=1)
-StdAsIf_1.add_byte("bAlternateSetting", value=1)
-StdAsIf_1.add_byte("bNumEndpoints", value=2)
-StdAsIf_1.add_byte("bInterfaceClass", value=0x01)
-StdAsIf_1.add_byte("bInterfaceSubClass", value=0x02)
-StdAsIf_1.add_byte("bInterfaceProtocol", value=0)
-StdAsIf_1.add_byte("iInterface", value=0)
-
-CsAsIf_1 = FieldCollection("Class-Specific AS Interface Descriptor", parent=StdAsIf_1)
-CsAsIf_1.add_byte("bLength", compute="length")
-CsAsIf_1.add_byte('bDescriptorType', value=0x24)
-CsAsIf_1.add_byte('bDescriptorSubtype', value=0x01)
-CsAsIf_1.add_byte('bTerminalLink', value=1)
-CsAsIf_1.add_byte('bDelay', value=1)
-CsAsIf_1.add_word('wFormatTag', value=0x0001)
-
-CsAsFmtType_1 = FieldCollection("Class-Specific AS Format Type Descriptor (Type I)", parent=CsAsIf_1)
-CsAsFmtType_1.add_byte("bLength", compute="length")
-CsAsFmtType_1.add_byte('bDescriptorType', value=0x24)
-CsAsFmtType_1.add_byte('bDescriptorSubtype', value=0x01)
-CsAsFmtType_1.add_byte('bFormatType', value=0x01)
-CsAsFmtType_1.add_byte('bNrChannels', value=2)
-CsAsFmtType_1.add_byte('bSubframeSize', value=2)
-CsAsFmtType_1.add_byte('bBitResolution', value=16)
-CsAsFmtType_1.add_byte('bSamFreqType', value=1)
-CsAsFmtType_1.add_medium('tSamFreq', value=[48000])
+class DescriptorTypes(Enum):
+    DEVICE = 1
+    CONFIGURATION = 2
+    STRING = 3
+    INTERFACE = 4
+    ENDPOINT = 5
 
 
-StdAsIsoAudioDataEp = FieldCollection("Standard AS Isochronous Audio Data Endpoint Descriptor", parent=StdAsIf_1)
-StdAsIsoAudioDataEp.add_byte('bLength', compute='length')
-StdAsIsoAudioDataEp.add_byte('bDescriptorType', value=5)
-StdAsIsoAudioDataEp.add_byte('bEndpointAddress', value=0x01)
-StdAsIsoAudioDataEp.add_byte('bmAttributes', value=0x05)
-StdAsIsoAudioDataEp.add_word('wMaxPacketSize', value=int(48000/1000*2*2))
-StdAsIsoAudioDataEp.add_byte('bInterval', value=1)
-StdAsIsoAudioDataEp.add_byte('bRefresh', value=0)
-StdAsIsoAudioDataEp.add_byte('bSynchAddress', value=0x81)
+class AudioDescriptorTypes(Enum):
+    UNDEFINED = 0x20
+    DEVICE = 0x21
+    CONFIGURATION = 0x22
+    STRING = 0x23
+    INTERFACE = 0x24
+    ENDPOINT = 0x25
 
-CsAsIsoAudioDataEp = FieldCollection("Class-Specific AS Isochronous Audio Data Endpoint Descriptor", parent=StdAsIsoAudioDataEp)
-CsAsIsoAudioDataEp.add_byte('bLength', compute='length')
-CsAsIsoAudioDataEp.add_byte('bDescriptorType', value=0x25)
-CsAsIsoAudioDataEp.add_byte('bDescriptorSubtype', value=0x01)
-CsAsIsoAudioDataEp.add_byte('bmAttributes', value=0x00)
-CsAsIsoAudioDataEp.add_byte('bLockDelayUnits', value=0)
-CsAsIsoAudioDataEp.add_word('wLockDelay', value=0)
 
-StdAsIsoSynchEp = FieldCollection("Standard AS Isochronous Synch Endpoint Descriptor", parent=StdAsIf_1)
-StdAsIsoSynchEp.add_byte('bLength', compute='length')
-StdAsIsoSynchEp.add_byte('bDescriptorType', value=5)
-StdAsIsoSynchEp.add_byte('bEndpointAddress', value=0x81)
-StdAsIsoSynchEp.add_byte('bmAttributes', value=0x01)
-StdAsIsoSynchEp.add_word('wMaxPacketSize', 3)
-StdAsIsoSynchEp.add_byte('bInterval', value=1)
-StdAsIsoSynchEp.add_byte('bRefresh', value=2)
-StdAsIsoSynchEp.add_byte('bSynchAddress', value=0)
+class AudioControlInterfaceDescriptorSubTypes(Enum):
+    UNDEFINED = 0x00
+    HEADER = 0x01
+    INPUT_TERMINAL = 0x02
+    OUTPUT_TERMINAL = 0x03
+    MIXER_UNIT = 0x04
+    SELECTOR_UNIT = 0x05
+    FEATURE_UNIT = 0x06
+    PROCESSING_UNIT = 0x07
+    EXTENSION_UNIT = 0x08
 
-for index, item in enumerate(Strings):
-    print(item[1].to_declaration(f"USB_StringDesc_{item[0]}"))
-print(Dev.to_declaration("USB_DeviceDesc"))
-print(Cfg.to_declaration("USB_ConfigDesc"))
+
+class AudioStreamingInterfaceDescriptorSubTypes(Enum):
+    UNDEFINED = 0x00
+    AS_GENERAL = 0x01
+    FORMAT_TYPE = 0x02
+    FORMAT_SPECIFIC = 0x03
+
+
+class AudioEndpointDescriptorSubTypes(Enum):
+    UNDEFINED = 0x00
+    EP_GENERAL = 0x01
+
+
+class InterfaceClassCodes(Enum):
+    AUDIO = 0x01
+
+
+class AudioInterfaceSubClassCodes(Enum):
+    UNDEFINED = 0x00
+    AUDIOCONTROL = 0x01
+    AUDIOSTREAMING = 0x02
+    MIDISTREAMING = 0x03
+
+
+class AudioInterfaceProtocolCodes(Enum):
+    UNDEFINED = 0x00
+
+
+class USBTerminalTypes(Enum):
+    UNDEFINED = 0x0100
+    STREAMING = 0x0101
+    VENDOR = 0x01FF
+
+
+class OutputTerminalTypes(Enum):
+    UNDEFINED = 0x0300
+    SPEAKER = 0x0301
+    HEADPHONES = 0x0302
+    HEAD_MOUNTED_DISPLAY_AUDIO = 0x0303
+    DESKTOP_SPEAKER = 0x0304
+    ROOM_SPEAKER = 0x0305
+    COMMUNICATION_SPEAKER = 0x0306
+    LOW_FREQUENCY_EFFECTS_SPEAKER = 0x0307
+
+
+class AudioDataFormatTypeICodes(Enum):
+    UNDEFINED = 0x0000
+    PCM = 0x0001
+    PCM8 = 0x0002
+    IEEE_FLOAT = 0x0003
+    ALAW = 0x0004
+    MULAW = 0x0005
+
+
+class FormatTypeCodes(Enum):
+    UNDEFINED = 0x00
+    FORMAT_TYPE_I = 0x01
+    FORMAT_TYPE_II = 0x02
+    FORMAT_TYPE_III = 0x03
+
+
+string_allocator = StringAllocator()
+
+lang_code_descriptor = Descriptor(
+    description="Codes Representing Languages Supported by the Device",
+    fields=[
+        Field(1, "bLength", DescriptorLength()),
+        Field(1, "bDescriptorType", DescriptorTypes.STRING),
+        Field(2, "wLANGID", [1033]),
+    ],
+)
+
+device_descriptor = Descriptor(
+    description="Standard Device Descriptor",
+    fields=[
+        Field(1, "bLength", DescriptorLength()),
+        Field(1, "bDescriptorType", DescriptorTypes.DEVICE),
+        Field(2, "bcdUSB", 0x0200),
+        Field(1, "bDeviceClass", 0xEF),
+        Field(1, "bDeviceSubClass", 0x02),
+        Field(1, "bDeviceProtocol", 0x00),
+        Field(1, "bMaxPacketSize0", 64),
+        Field(2, "idVendor", 0x0483),
+        Field(2, "idProduct", 0x5740),
+        Field(2, "bcdDevice", 0x0100),
+        Field(1, "iManufacturer", string_allocator.allocate("STMicroelectronics")),
+        Field(1, "iProduct", string_allocator.allocate("STM32 Audio")),
+        Field(1, "iSerialNumber", string_allocator.allocate("1234567890123")),
+        Field(1, "bNumConfigurations", 1),
+    ],
+)
+
+config_descriptor = Descriptor(
+    description="Standard Configuration Descriptor",
+    fields=[
+        Field(1, "bLength", DescriptorLength()),
+        Field(1, "bDescriptorType", DescriptorTypes.CONFIGURATION),
+        Field(2, "wTotalLength", DescriptorLength(total=True)),
+        Field(1, "bNumInterfaces", 2),
+        Field(1, "bConfigurationValue", 1),
+        Field(1, "iConfiguration", 0),
+        Field(1, "bmAttributes", 0xC0),
+        Field(1, "MaxPower", 500),
+    ],
+    children=[
+        Descriptor(
+            description="Standard AC Interface Descriptor",
+            fields=[
+                Field(1, "bLength", DescriptorLength()),
+                Field(1, "bDescriptorType", DescriptorTypes.INTERFACE),
+                Field(1, "bInterfaceNumber", 0),
+                Field(1, "bAlternateSetting", 0),
+                Field(1, "bNumEndpoints", 0),
+                Field(1, "bInterfaceClass", InterfaceClassCodes.AUDIO),
+                Field(1, "bInterfaceSubClass", AudioInterfaceSubClassCodes.AUDIOCONTROL),
+                Field(1, "bInterfaceProtocol", AudioInterfaceProtocolCodes.UNDEFINED),
+                Field(1, "iInterface", 0),
+            ],
+            children=[
+                Descriptor(
+                    description="Class-Specific AC Interface Header Descriptor",
+                    fields=[
+                        Field(1, "bLength", DescriptorLength()),
+                        Field(1, "bDescriptorType", AudioDescriptorTypes.INTERFACE),
+                        Field(1, "bDescriptorSubtype", AudioControlInterfaceDescriptorSubTypes.HEADER),
+                        Field(2, "bcdADC", 0x0100),
+                        Field(2, "wTotalLength", DescriptorLength(total=True)),
+                        Field(1, "bInCollection", 1),
+                        Field(1, "baInterfaceNr", [1]),
+                    ],
+                    children=[
+                        Descriptor(
+                            description="Input Terminal Descriptor",
+                            fields=[
+                                Field(1, "bLength", DescriptorLength()),
+                                Field(1, "bDescriptorType", AudioDescriptorTypes.INTERFACE),
+                                Field(1, "bDescriptorSubtype", AudioControlInterfaceDescriptorSubTypes.INPUT_TERMINAL),
+                                Field(1, "bTerminalID", 1),
+                                Field(2, "wTerminalType", USBTerminalTypes.STREAMING),
+                                Field(1, "bAssocTerminal", 0),
+                                Field(1, "bNrChannels", 2),
+                                Field(2, "wChannelConfig", 0x0003),
+                                Field(1, "iChannelNames", 0),
+                                Field(1, "iTerminal", 0),
+                            ],
+                        ),
+                        Descriptor(
+                            description="Feature Unit Descriptor",
+                            fields=[
+                                Field(1, "bLength", DescriptorLength()),
+                                Field(1, "bDescriptorType", AudioDescriptorTypes.INTERFACE),
+                                Field(1, "bDescriptorSubtype", AudioControlInterfaceDescriptorSubTypes.FEATURE_UNIT),
+                                Field(1, "bUnitID", 2),
+                                Field(2, "bSourceID", 1),
+                                Field(1, "bControlSize", 1),
+                                Field(1, "bmaControls", [0x03, 0x00, 0x00]),
+                                Field(1, "iFeature", 0),
+                            ],
+                        ),
+                        Descriptor(
+                            description="Output Terminal Descriptor",
+                            fields=[
+                                Field(1, "bLength", DescriptorLength()),
+                                Field(1, "bDescriptorType", AudioDescriptorTypes.INTERFACE),
+                                Field(1, "bDescriptorSubtype", AudioControlInterfaceDescriptorSubTypes.OUTPUT_TERMINAL),
+                                Field(1, "bTerminalID", 3),
+                                Field(2, "wTerminalType", OutputTerminalTypes.SPEAKER),
+                                Field(1, "bAssocTerminal", 0),
+                                Field(1, "bSourceID", 2),
+                                Field(1, "iTerminal", 0),
+                            ],
+                        ),
+                    ],
+                )
+            ],
+        ),
+        Descriptor(
+            description="Standard AS Interface Descriptor (AlternateSetting: 0)",
+            fields=[
+                Field(1, "bLength", DescriptorLength()),
+                Field(1, "bDescriptorType", DescriptorTypes.INTERFACE),
+                Field(1, "bInterfaceNumber", 1),
+                Field(1, "bAlternateSetting", 0),
+                Field(1, "bNumEndpoints", 0),
+                Field(1, "bInterfaceClass", InterfaceClassCodes.AUDIO),
+                Field(1, "bInterfaceSubClass", AudioInterfaceSubClassCodes.AUDIOSTREAMING),
+                Field(1, "bInterfaceProtocol", AudioInterfaceProtocolCodes.UNDEFINED),
+                Field(1, "iInterface", 0),
+            ],
+        ),
+        Descriptor(
+            description="Standard AS Interface Descriptor (AlternateSetting: 1)",
+            fields=[
+                Field(1, "bLength", DescriptorLength()),
+                Field(1, "bDescriptorType", DescriptorTypes.INTERFACE),
+                Field(1, "bInterfaceNumber", 1),
+                Field(1, "bAlternateSetting", 1),
+                Field(1, "bNumEndpoints", 2),
+                Field(1, "bInterfaceClass", InterfaceClassCodes.AUDIO),
+                Field(1, "bInterfaceSubClass", AudioInterfaceSubClassCodes.AUDIOSTREAMING),
+                Field(1, "bInterfaceProtocol", AudioInterfaceProtocolCodes.UNDEFINED),
+                Field(1, "iInterface", 0),
+            ],
+            children=[
+                Descriptor(
+                    description="Class-Specific AS Interface Descriptor",
+                    fields=[
+                        Field(1, "bLength", DescriptorLength()),
+                        Field(1, "bDescriptorType", AudioDescriptorTypes.INTERFACE),
+                        Field(1, "bDescriptorSubtype", AudioStreamingInterfaceDescriptorSubTypes.AS_GENERAL),
+                        Field(1, "bTerminalLink", 1),
+                        Field(1, "bDelay", 1),
+                        Field(1, "wFormatTag", AudioDataFormatTypeICodes.PCM),
+                    ],
+                    children=[
+                        Descriptor(
+                            description="Class-Specific AS Format Type Descriptor (Type I)",
+                            fields=[
+                                Field(1, "bLength", DescriptorLength()),
+                                Field(1, "bDescriptorType", AudioDescriptorTypes.INTERFACE),
+                                Field(1, "bDescriptorSubtype", AudioStreamingInterfaceDescriptorSubTypes.FORMAT_TYPE),
+                                Field(1, "bFormatType", FormatTypeCodes.FORMAT_TYPE_I),
+                                Field(1, "bNrChannels", 2),
+                                Field(1, "bSubframeSize", 2),
+                                Field(1, "bBitResolution", 16),
+                                Field(1, "bSamFreqType", 1),
+                                Field(3, "tSamFreq", [48000]),
+                            ],
+                        )
+                    ],
+                ),
+                Descriptor(
+                    description="Standard AS Isochronous Audio Data Endpoint Descriptor",
+                    fields=[
+                        Field(1, "bLength", DescriptorLength()),
+                        Field(1, "bDescriptorType", DescriptorTypes.ENDPOINT),
+                        Field(1, "bEndpointAddress", 0x01),
+                        Field(1, "bmAttributes", 0x05),
+                        Field(2, "wMaxPacketSize", int(48000 / 1000 * 2 * 2)),
+                        Field(1, "bInterval", 1),
+                        Field(1, "bRefresh", 0),
+                        Field(1, "bSynchAddress", 0x81),
+                    ],
+                    children=[
+                        Descriptor(
+                            description="Class-Specific AS Isochronous Audio Data Endpoint Descriptor",
+                            fields=[
+                                Field(1, "bLength", DescriptorLength()),
+                                Field(1, "bDescriptorType", AudioDescriptorTypes.ENDPOINT),
+                                Field(1, "bDescriptorSubtype", AudioEndpointDescriptorSubTypes.EP_GENERAL),
+                                Field(1, "bmAttributes", 0x00),
+                                Field(1, "bLockDelayUnits", 0),
+                                Field(2, "wLockDelay", 0),
+                            ],
+                        ),
+                    ],
+                ),
+                Descriptor(
+                    description="Standard AS Isochronous Synch Endpoint Descriptor",
+                    fields=[
+                        Field(1, "bLength", DescriptorLength()),
+                        Field(1, "bDescriptorType", DescriptorTypes.ENDPOINT),
+                        Field(1, "bEndpointAddress", 0x81),
+                        Field(1, "bmAttributes", 0x01),
+                        Field(2, "wMaxPacketSize", 3),
+                        Field(1, "bInterval", 1),
+                        Field(1, "bRefresh", 2),
+                        Field(1, "bSynchAddress", 0),
+                    ],
+                ),
+            ],
+        ),
+    ],
+)
+
+descriptors = list[tuple[str, Descriptor]]()
+
+descriptors.append(("DeviceDescriptor", device_descriptor))
+descriptors.append(("ConfigDescriptor", config_descriptor))
+descriptors.append(("LangCodesDescriptor", lang_code_descriptor))
+for index, string in enumerate(string_allocator.strings):
+    descriptor = Descriptor(
+        description=f'String Descriptor of "{string}"',
+        fields=[
+            Field(1, "bLength", DescriptorLength()),
+            Field(1, "bDescriptorType", DescriptorTypes.STRING),
+            Field(2, "bString", string),
+        ],
+    )
+    descriptors.append((f"StringDescriptor_{index}", descriptor))
+
+lines = []
+for name, descriptor in descriptors:
+    lines.append("")
+    lines += descriptor.generate_declaration(name)
+
+print("\n".join(lines))
