@@ -50,8 +50,7 @@ void HAL_PCD_SetupStageCallback(PCD_HandleTypeDef *hpcd) {
           switch (req_recipient) {
             case USB_REQ_RECIPIENT_DEVICE:
               if (req->wValue <= 127 && req->wIndex == 0U && req->wLength == 0U) {
-                hdev->address = (uint8_t)req->wValue;
-                HAL_PCD_SetAddress(hpcd, hdev->address);
+                HAL_PCD_SetAddress(hpcd, (uint8_t)req->wValue);
                 HAL_PCD_EP_Transmit(hpcd, 0x00, NULL, 0U);
                 return;
               }
@@ -137,18 +136,15 @@ void HAL_PCD_SetupStageCallback(PCD_HandleTypeDef *hpcd) {
       break;
   }
   HAL_PCD_EP_SetStall(hpcd, 0x00);
+  HAL_PCD_EP_SetStall(hpcd, 0x80);
 }
 
 void HAL_PCD_DataOutStageCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum) {
-  if ((epnum & 0x7FU) == 0) {
-    HAL_PCD_EP_Transmit(hpcd, epnum, NULL, 0U);
-  }
+  return;
 }
 
 void HAL_PCD_DataInStageCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum) {
-  if ((epnum & 0x7FU) == 0) {
-    HAL_PCD_EP_Receive(hpcd, epnum, NULL, 0U);
-  }
+  return;
 }
 
 void HAL_PCD_SOFCallback(PCD_HandleTypeDef *hpcd) {
@@ -157,12 +153,11 @@ void HAL_PCD_SOFCallback(PCD_HandleTypeDef *hpcd) {
 
 void HAL_PCD_ResetCallback(PCD_HandleTypeDef *hpcd) {
   USB_DeviceHandleTypeDef *hdev = (USB_DeviceHandleTypeDef *)hpcd->pData;
-  hdev->address = 0U;
   hdev->configuration = 0U;
   memset(hdev->alt_settings, 0, sizeof(hdev->alt_settings));
 
-  HAL_PCD_EP_Open(hpcd, 0x00, 64, 0x00);
-  HAL_PCD_EP_Open(hpcd, 0x80, 64, 0x00);
+  HAL_PCD_EP_Open(hpcd, 0x00, 64, EP_TYPE_CTRL);
+  HAL_PCD_EP_Open(hpcd, 0x80, 64, EP_TYPE_CTRL);
 }
 
 void HAL_PCD_SuspendCallback(PCD_HandleTypeDef *hpcd) {

@@ -58,7 +58,6 @@ typedef struct usb_setup_req {
 } USB_SetupReqTypeDef;
 
 typedef struct usb_device_handle {
-  uint8_t address;
   uint8_t configuration;
   uint8_t alt_settings[USB_DEV_MAX_INTERFACES];
 } USB_DeviceHandleTypeDef;
