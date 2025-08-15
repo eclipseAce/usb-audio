@@ -156,8 +156,8 @@ void HAL_PCD_ResetCallback(PCD_HandleTypeDef *hpcd) {
   hdev->configuration = 0U;
   memset(hdev->alt_settings, 0, sizeof(hdev->alt_settings));
 
-  HAL_PCD_EP_Open(hpcd, 0x00, 64, EP_TYPE_CTRL);
-  HAL_PCD_EP_Open(hpcd, 0x80, 64, EP_TYPE_CTRL);
+  // HAL_PCD_EP_Open(hpcd, 0x00, 64, EP_TYPE_CTRL);
+  // HAL_PCD_EP_Open(hpcd, 0x80, 64, EP_TYPE_CTRL);
 }
 
 void HAL_PCD_SuspendCallback(PCD_HandleTypeDef *hpcd) {
