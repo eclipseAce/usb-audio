@@ -18,7 +18,7 @@ void HAL_PCD_SetupStageCallback(PCD_HandleTypeDef *hpcd) {
         case USB_REQ_GET_STATUS:
           switch (req_recipient) {
             case USB_REQ_RECIPIENT_DEVICE:
-            case USB_REQ_SET_INTERFACE:
+            case USB_REQ_RECIPIENT_INTERFACE:
             case USB_REQ_RECIPIENT_ENDPOINT:
               *(uint16_t *)buf = 0U;
               HAL_PCD_EP_Transmit(hpcd, 0x00, buf, 2U);
@@ -29,7 +29,7 @@ void HAL_PCD_SetupStageCallback(PCD_HandleTypeDef *hpcd) {
         case USB_REQ_CLEAR_FEATURE:
           switch (req_recipient) {
             case USB_REQ_RECIPIENT_DEVICE:
-            case USB_REQ_SET_INTERFACE:
+            case USB_REQ_RECIPIENT_INTERFACE:
             case USB_REQ_RECIPIENT_ENDPOINT:
               HAL_PCD_EP_Transmit(hpcd, 0x00, NULL, 0U);
               return;
@@ -39,7 +39,7 @@ void HAL_PCD_SetupStageCallback(PCD_HandleTypeDef *hpcd) {
         case USB_REQ_SET_FEATURE:
           switch (req_recipient) {
             case USB_REQ_RECIPIENT_DEVICE:
-            case USB_REQ_SET_INTERFACE:
+            case USB_REQ_RECIPIENT_INTERFACE:
             case USB_REQ_RECIPIENT_ENDPOINT:
               HAL_PCD_EP_Transmit(hpcd, 0x00, NULL, 0U);
               return;
@@ -68,7 +68,7 @@ void HAL_PCD_SetupStageCallback(PCD_HandleTypeDef *hpcd) {
                   return;
 
                 case USB_DESC_TYPE_CONFIGURATION:
-                  if (LOBYTE(req->wValue) == 1) {
+                  if (LOBYTE(req->wValue) == 0) {
                     /* send configuration 1 descriptor*/
                     HAL_PCD_EP_Transmit(hpcd, 0x00, ConfigDescriptor, MIN(req->wLength, sizeof(ConfigDescriptor)));
                     return;

@@ -11,7 +11,7 @@ __ALIGN_BEGIN uint8_t DeviceDescriptor[18] __ALIGN_END = {
   0x40,                     /* bMaxPacketSize0 */
   0x83, 0x04,               /* idVendor */
   0x40, 0x57,               /* idProduct */
-  0x00, 0x02,               /* bcdDevice */
+  0x00, 0x01,               /* bcdDevice */
   0x01,                     /* iManufacturer = "STMicroelectronics" */
   0x02,                     /* iProduct = "STM32 Audio" */
   0x03,                     /* iSerialNumber = "1234567890123" */
@@ -202,7 +202,7 @@ __ALIGN_BEGIN uint8_t StringDescriptor_1[24] __ALIGN_END = {
 };
 
 __ALIGN_BEGIN uint8_t StringDescriptor_2[28] __ALIGN_END = {
-  /* String Descriptor of "1234567890123" */
+  /* String Descriptor of "1234567890124" */
   0x1C,                     /* bLength */
   0x03,                     /* bDescriptorType = STRING */
   0x31, 0x00,               /* bString[0] */
@@ -217,7 +217,7 @@ __ALIGN_BEGIN uint8_t StringDescriptor_2[28] __ALIGN_END = {
   0x30, 0x00,               /* bString[9] */
   0x31, 0x00,               /* bString[10] */
   0x32, 0x00,               /* bString[11] */
-  0x33, 0x00,               /* bString[12] */
+  0x34, 0x00,               /* bString[12] */
 };
 
 uint8_t *StringDescriptorPtr[USB_MAX_STRING_DESCRIPTORS] = {
