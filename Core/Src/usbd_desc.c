@@ -26,7 +26,7 @@ __ALIGN_BEGIN uint8_t ConfigDescriptor[119] __ALIGN_END = {
   0x02,                     /* bNumInterfaces */
   0x01,                     /* bConfigurationValue */
   0x00,                     /* iConfiguration */
-  0xC0,                     /* bmAttributes */
+  0x00,                     /* bmAttributes */
   0xF4,                     /* MaxPower */
   
   /* Standard AC Interface Descriptor */
