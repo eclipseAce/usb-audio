@@ -369,7 +369,7 @@ static void MX_USB_OTG_FS_PCD_Init(void)
   /* USER CODE END USB_OTG_FS_Init 0 */
 
   /* USER CODE BEGIN USB_OTG_FS_Init 1 */
-  hpcd_USB_OTG_FS.Init.ep0_mps = 64U;
+
   /* USER CODE END USB_OTG_FS_Init 1 */
   hpcd_USB_OTG_FS.Instance = USB_OTG_FS;
   hpcd_USB_OTG_FS.Init.dev_endpoints = 9;

@@ -52,7 +52,13 @@
 typedef struct usb_setup_req {
   uint8_t bmRequestType;
   uint8_t bRequest;
-  uint16_t wValue;
+  union {
+    uint16_t wValue;
+    struct {
+      uint8_t DescriptorIndex;
+      uint8_t DescriptorType;
+    };
+  };
   uint16_t wIndex;
   uint16_t wLength;
 } USB_SetupReqTypeDef;
@@ -60,6 +66,10 @@ typedef struct usb_setup_req {
 typedef struct usb_device_handle {
   uint8_t configuration;
   uint8_t alt_settings[USB_DEV_MAX_INTERFACES];
+
+  uint8_t *buf;
+  uint16_t total_len;
+  uint16_t transmit_len;
 } USB_DeviceHandleTypeDef;
 
 #endif /* __USBD_CORE_H */
