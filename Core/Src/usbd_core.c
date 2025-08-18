@@ -1,9 +1,24 @@
 #include "usbd_core.h"
 
+#include <stdio.h>
 #include <string.h>
 
 #include "stm32h7xx.h"
 #include "usbd_desc.h"
+
+static void USB_EP0_Transmit(PCD_HandleTypeDef *hpcd, uint8_t *buf, uint16_t len) {
+  USB_DeviceHandleTypeDef *hdev = (USB_DeviceHandleTypeDef *)hpcd->pData;
+  hdev->buf = buf;
+  hdev->len = len;
+  hdev->remain_len = len;
+  hdev->transmit_len = MIN(hdev->remain_len, hpcd->IN_ep[0].maxpacket);
+  HAL_PCD_EP_Transmit(hpcd, 0x00, hdev->buf, hdev->transmit_len);
+}
+
+static void USB_EP0_SetStall(PCD_HandleTypeDef *hpcd) {
+  HAL_PCD_EP_SetStall(hpcd, 0x00);
+  HAL_PCD_EP_SetStall(hpcd, 0x80);
+}
 
 void HAL_PCD_SetupStageCallback(PCD_HandleTypeDef *hpcd) {
   USB_SetupReqTypeDef *req = (USB_SetupReqTypeDef *)&hpcd->Setup[0];
@@ -16,51 +31,98 @@ void HAL_PCD_SetupStageCallback(PCD_HandleTypeDef *hpcd) {
         case USB_REQ_RECIPIENT_DEVICE:
           switch (req->bRequest) {
             case USB_REQ_CLEAR_FEATURE:
+              if (hdev->state != USB_STATE_DEFAULT                   /* not in default mode */
+                  && req->wLength == 0                               /* wLength == 0 */
+                  && req->wIndex == 0                                /* wIndex == 0 */
+                  && req->wValue == USB_DEVICE_FEATURE_REMOTE_WAKEUP /* is remote wakeup feature, it's the only supported feature for device */
+              ) {
+                hdev->dev_status &= (~USB_DEVICE_STATUS_REMOTE_WAKEUP_MASK);
+                HAL_PCD_DeActivateRemoteWakeup(hpcd);
+                HAL_PCD_EP_Transmit(hpcd, 0x00, NULL, 0);
+                return;
+              }
               break;
 
             case USB_REQ_GET_CONFIGURATION:
-              break;
+              if (hdev->state != USB_STATE_DEFAULT /* not in default mode */
+                  && req->wLength == 1U            /* wLength == 1 */
+                  && req->wIndex == 0              /* wIndex == 0 */
+                  && req->wValue == 0              /* wValue == 0 */
+              ) {
+                USB_EP0_Transmit(hpcd, &hdev->configuration, 1U);
+                return;
+              }
+              return;
 
             case USB_REQ_GET_DESCRIPTOR:
               switch (req->DescriptorType) {
                 case USB_DESC_TYPE_DEVICE:
-                  hdev->buf = DeviceDescriptor;
-                  hdev->total_len = sizeof(DeviceDescriptor);
-                  hdev->transmit_len = MIN(hdev->total_len, hpcd->IN_ep[0].maxpacket);
-                  HAL_PCD_EP_Transmit(hpcd, 0x00, hdev->buf, hdev->transmit_len);
-                  break;
+                  USB_EP0_Transmit(hpcd, DeviceDescriptor, MIN(req->wLength, sizeof(DeviceDescriptor)));
+                  return;
 
                 case USB_DESC_TYPE_CONFIGURATION:
-                  hdev->buf = ConfigDescriptor;
-                  hdev->total_len = sizeof(ConfigDescriptor);
-                  hdev->transmit_len = MIN(hdev->total_len, hpcd->IN_ep[0].maxpacket);
-                  HAL_PCD_EP_Transmit(hpcd, 0x00, hdev->buf, hdev->transmit_len);
-                  break;
+                  USB_EP0_Transmit(hpcd, ConfigDescriptor, MIN(req->wLength, sizeof(ConfigDescriptor)));
+                  return;
 
                 case USB_DESC_TYPE_STRING:
-                  hdev->buf = StringDescriptorPtr[req->DescriptorIndex];
-                  hdev->total_len = StringDescriptorLen[req->DescriptorIndex];
-                  hdev->transmit_len = MIN(hdev->total_len, hpcd->IN_ep[0].maxpacket);
-                  HAL_PCD_EP_Transmit(hpcd, 0x00, hdev->buf, hdev->transmit_len);
-                  break;
+                  USB_EP0_Transmit(hpcd, StringDescriptorPtr[req->DescriptorIndex], MIN(req->wLength, StringDescriptorLen[req->DescriptorIndex]));
+                  return;
               }
               break;
 
             case USB_REQ_GET_STATUS:
+              if (hdev->state != USB_STATE_DEFAULT /* not in default mode */
+                  && req->wLength == 2U            /* wLength == 2 */
+                  && req->wIndex == 0              /* wIndex == 0 */
+                  && req->wValue == 0              /* wValue == 0 */
+              ) {
+                USB_EP0_Transmit(hpcd, &hdev->dev_status, 2U);
+                return;
+              }
               break;
 
             case USB_REQ_SET_ADDRESS:
-              HAL_PCD_SetAddress(hpcd, (uint8_t)(req->wValue & 0x7F));
-              HAL_PCD_EP_Transmit(hpcd, 0x00, NULL, 0);
-              break;
+              if (hdev->state != USB_STATE_CONFIGURED /* device is not in configured mode */
+                  && req->wLength == 0                /* wLength == 0 */
+                  && req->wIndex == 0                 /* wIndex == 0 */
+                  && req->wValue <= 127               /* wValue <= 127 */
+              ) {
+                hdev->address = (uint8_t)req->wValue;
+                hdev->state = (hdev->address == 0) ? USB_STATE_DEFAULT : USB_STATE_ADDRESS;
+                HAL_PCD_SetAddress(hpcd, hdev->address);
+                HAL_PCD_EP_Transmit(hpcd, 0x00, NULL, 0);
+                return;
+              }
+              return;
 
             case USB_REQ_SET_CONFIGURATION:
-              break;
+              if (hdev->state != USB_STATE_DEFAULT                      /* not in default mode */
+                  && req->wLength == 0                                  /* wLength == 0 */
+                  && req->wIndex == 0                                   /* wIndex == 0 */
+                  && req->DescriptorType == 0                           /* LOBYTE(wValue) == 0 */
+                  && req->DescriptorIndex <= USB_DEV_MAX_CONFIGURATIONS /* configuration value exists */
+              ) {
+                hdev->configuration = req->DescriptorIndex;
+                hdev->state = (hdev->configuration == 0) ? USB_STATE_ADDRESS : USB_STATE_CONFIGURED;
+                HAL_PCD_EP_Transmit(hpcd, 0x00, NULL, 0);
+                return;
+              }
+              return;
 
             case USB_REQ_SET_DESCRIPTOR:
               break;
 
             case USB_REQ_SET_FEATURE:
+              if (hdev->state != USB_STATE_DEFAULT                   /* not in default mode */
+                  && req->wLength == 0                               /* wLength == 0 */
+                  && req->wIndex == 0                                /* wIndex == 0 */
+                  && req->wValue == USB_DEVICE_FEATURE_REMOTE_WAKEUP /* is remote wakeup feature, it's the only supported feature for device */
+              ) {
+                hdev->dev_status |= USB_DEVICE_STATUS_REMOTE_WAKEUP_MASK;
+                HAL_PCD_ActivateRemoteWakeup(hpcd);
+                HAL_PCD_EP_Transmit(hpcd, 0x00, NULL, 0);
+                return;
+              }
               break;
           }
           break;
@@ -71,6 +133,14 @@ void HAL_PCD_SetupStageCallback(PCD_HandleTypeDef *hpcd) {
               break;
 
             case USB_REQ_GET_INTERFACE:
+              if (hdev->state == USB_STATE_CONFIGURED     /* is in configured mode */
+                  && req->wLength == 1U                   /* wLength == 1 */
+                  && req->wValue == 0                     /* wValue == 0 */
+                  && req->wIndex < USB_DEV_MAX_INTERFACES /* interface number is valid */
+              ) {
+                HAL_PCD_EP_Transmit(hpcd, 0x00, &hdev->alt_settings[req->wIndex], 1U);
+                return;
+              }
               break;
 
             case USB_REQ_GET_STATUS:
@@ -108,9 +178,12 @@ void HAL_PCD_SetupStageCallback(PCD_HandleTypeDef *hpcd) {
     case USB_REQ_TYPE_VENDOR:
       break;
   }
+  USB_EP0_SetStall(hpcd);
 }
 
 void HAL_PCD_DataOutStageCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum) {
+  printf("DataOut\r\n");
+
   return;
 }
 
@@ -118,19 +191,17 @@ void HAL_PCD_DataInStageCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum) {
   USB_DeviceHandleTypeDef *hdev = (USB_DeviceHandleTypeDef *)hpcd->pData;
   if ((epnum & 0x0FU) == 0x00) {
     if (hdev->buf != NULL) {
-      hdev->total_len -= hdev->transmit_len;
-      if (hdev->total_len > 0) {
+      hdev->remain_len -= hdev->transmit_len;
+      if (hdev->remain_len > 0 || hdev->transmit_len == hpcd->IN_ep[0].maxpacket) {
         hdev->buf += hdev->transmit_len;
-        hdev->transmit_len = MIN(hdev->total_len, hpcd->IN_ep[0].maxpacket);
+        hdev->transmit_len = MIN(hdev->remain_len, hpcd->IN_ep[0].maxpacket);
         HAL_PCD_EP_Transmit(hpcd, 0x00, hdev->buf, hdev->transmit_len);
-        HAL_PCD_EP_Receive(hpcd, 0x00, NULL, 0U);
       } else {
-        if (hdev->transmit_len == hpcd->IN_ep[0].maxpacket) {
-          HAL_PCD_EP_Transmit(hpcd, 0x00, NULL, 0);
-          HAL_PCD_EP_Receive(hpcd, 0x00, NULL, 0U);
-        }
         hdev->buf = NULL;
+        hdev->len = 0U;
+        hdev->remain_len = 0U;
         hdev->transmit_len = 0U;
+        HAL_PCD_EP_Receive(hpcd, 0x00, NULL, 0);
       }
     }
   }
@@ -145,11 +216,12 @@ void HAL_PCD_ResetCallback(PCD_HandleTypeDef *hpcd) {
   hdev->configuration = 0U;
   memset(hdev->alt_settings, 0, sizeof(hdev->alt_settings));
   hdev->buf = NULL;
-  hdev->total_len = 0U;
+  hdev->len = 0U;
+  hdev->remain_len = 0U;
   hdev->transmit_len = 0U;
 
-  HAL_PCD_EP_Open(hpcd, 0x00, 8, EP_TYPE_CTRL);
-  HAL_PCD_EP_Open(hpcd, 0x80, 8, EP_TYPE_CTRL);
+  HAL_PCD_EP_Open(hpcd, 0x00, 64, EP_TYPE_CTRL);
+  HAL_PCD_EP_Open(hpcd, 0x80, 64, EP_TYPE_CTRL);
 }
 
 void HAL_PCD_SuspendCallback(PCD_HandleTypeDef *hpcd) {

@@ -4,19 +4,19 @@
 #include "stm32h7xx.h"
 
 #ifndef LOBYTE
-#define LOBYTE(x)  ((uint8_t)((x) & 0x00FFU))
+#define LOBYTE(x) ((uint8_t)((x) & 0x00FFU))
 #endif /* LOBYTE */
 
 #ifndef HIBYTE
-#define HIBYTE(x)  ((uint8_t)(((x) & 0xFF00U) >> 8U))
+#define HIBYTE(x) ((uint8_t)(((x) & 0xFF00U) >> 8U))
 #endif /* HIBYTE */
 
 #ifndef MIN
-#define MIN(a, b)  (((a) < (b)) ? (a) : (b))
+#define MIN(a, b) (((a) < (b)) ? (a) : (b))
 #endif /* MIN */
 
 #ifndef MAX
-#define MAX(a, b)  (((a) > (b)) ? (a) : (b))
+#define MAX(a, b) (((a) > (b)) ? (a) : (b))
 #endif /* MAX */
 
 #define USB_REQ_TYPE_STANDARD 0x00U
@@ -47,7 +47,16 @@
 #define USB_DESC_TYPE_INTERFACE     0x04U
 #define USB_DESC_TYPE_ENDPOINT      0x05U
 
-#define USB_DEV_MAX_INTERFACES   2U
+#define USB_STATE_DEFAULT    0
+#define USB_STATE_ADDRESS    1
+#define USB_STATE_CONFIGURED 2
+
+#define USB_DEVICE_FEATURE_REMOTE_WAKEUP 1
+
+#define USB_DEVICE_STATUS_REMOTE_WAKEUP_MASK 0x02U
+
+#define USB_DEV_MAX_INTERFACES     2U
+#define USB_DEV_MAX_CONFIGURATIONS 1U
 
 typedef struct usb_setup_req {
   uint8_t bmRequestType;
@@ -64,11 +73,15 @@ typedef struct usb_setup_req {
 } USB_SetupReqTypeDef;
 
 typedef struct usb_device_handle {
+  uint8_t state;
+  uint16_t dev_status;
+  uint8_t address;
   uint8_t configuration;
   uint8_t alt_settings[USB_DEV_MAX_INTERFACES];
 
   uint8_t *buf;
-  uint16_t total_len;
+  uint16_t len;
+  uint16_t remain_len;
   uint16_t transmit_len;
 } USB_DeviceHandleTypeDef;
 

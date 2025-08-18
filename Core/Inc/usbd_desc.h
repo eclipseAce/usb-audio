@@ -12,7 +12,7 @@ extern uint8_t StringDescriptor_0[38];
 
 extern uint8_t StringDescriptor_1[24];
 
-extern uint8_t StringDescriptor_2[28];
+extern uint8_t StringDescriptor_2[64];
 
 extern uint8_t *StringDescriptorPtr[USB_MAX_STRING_DESCRIPTORS];
 

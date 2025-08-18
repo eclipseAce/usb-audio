@@ -21,7 +21,8 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "string.h"
+#include <stdio.h>
+#include <string.h>
 #include "usbd_core.h"
 /* USER CODE END Includes */
 
@@ -72,7 +73,14 @@ static void MX_USB_OTG_FS_PCD_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+int __io_getchar(void) {
+  return EOF;
+}
 
+int __io_putchar(int ch) {
+  HAL_UART_Transmit(&huart1, (uint8_t*)(&ch), 1, HAL_MAX_DELAY);
+  return 1;
+}
 /* USER CODE END 0 */
 
 /**
@@ -119,9 +127,8 @@ int main(void)
 
   hpcd_USB_OTG_FS.pData = &hdev;
 
-  HAL_PCDEx_SetRxFiFo(&hpcd_USB_OTG_FS, 0x120);
+  HAL_PCDEx_SetRxFiFo(&hpcd_USB_OTG_FS, 0x100);
   HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_FS, 0, 0x40);
-  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_FS, 1, 0x80);
   
   if (HAL_PCD_Start(&hpcd_USB_OTG_FS) != HAL_OK) {
     Error_Handler();

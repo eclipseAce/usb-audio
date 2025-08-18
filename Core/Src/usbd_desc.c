@@ -201,7 +201,7 @@ __ALIGN_BEGIN uint8_t StringDescriptor_1[24] __ALIGN_END = {
   0x6F, 0x00,               /* bString[10] */
 };
 
-__ALIGN_BEGIN uint8_t StringDescriptor_2[28] __ALIGN_END = {
+__ALIGN_BEGIN uint8_t StringDescriptor_2[64] __ALIGN_END = {
   /* String Descriptor of "1234567890124" */
   0x1C,                     /* bLength */
   0x03,                     /* bDescriptorType = STRING */
@@ -218,6 +218,24 @@ __ALIGN_BEGIN uint8_t StringDescriptor_2[28] __ALIGN_END = {
   0x31, 0x00,               /* bString[10] */
   0x32, 0x00,               /* bString[11] */
   0x34, 0x00,               /* bString[12] */
+  0x34, 0x00,               /* bString[12] */
+  0x34, 0x00,               /* bString[12] */
+  0x34, 0x00,               /* bString[12] */
+  0x34, 0x00,               /* bString[12] */
+  0x34, 0x00,               /* bString[12] */
+  0x34, 0x00,               /* bString[12] */
+  0x34, 0x00,               /* bString[12] */
+  0x34, 0x00,               /* bString[12] */
+  0x34, 0x00,               /* bString[12] */
+  0x34, 0x00,               /* bString[12] */
+  0x34, 0x00,               /* bString[12] */
+  0x34, 0x00,               /* bString[12] */
+  0x34, 0x00,               /* bString[12] */
+  0x34, 0x00,               /* bString[12] */
+  0x34, 0x00,               /* bString[12] */
+  0x34, 0x00,               /* bString[12] */
+  0x34, 0x00,               /* bString[12] */
+  0x34, 0x00,               /* bString[12] */
 };
 
 uint8_t *StringDescriptorPtr[USB_MAX_STRING_DESCRIPTORS] = {
@@ -231,5 +249,5 @@ uint16_t StringDescriptorLen[USB_MAX_STRING_DESCRIPTORS] = {
   4,
   38,
   24,
-  28,
+  64,
 };
