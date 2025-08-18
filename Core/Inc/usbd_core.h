@@ -61,14 +61,16 @@
 #define USB_DEV_MAX_INTERFACES     2U
 #define USB_DEV_MAX_ENDPOINTS      2U
 
+#define USB_EP0_MAX_PACKET 64U
+
 typedef struct usb_setup_req {
   uint8_t bmRequestType;
   uint8_t bRequest;
   union {
     uint16_t wValue;
     struct {
-      uint8_t DescriptorIndex;
-      uint8_t DescriptorType;
+      uint8_t wValueL;
+      uint8_t wValueH;
     };
   };
   uint16_t wIndex;
@@ -77,16 +79,16 @@ typedef struct usb_setup_req {
 
 typedef struct usb_device_handle {
   uint8_t state;
-  uint16_t device_status;
-  uint16_t endpoint_status[USB_DEV_MAX_ENDPOINTS];
+  uint16_t status;
+  uint16_t ep_status[USB_DEV_MAX_ENDPOINTS];
   uint8_t address;
-  uint8_t configuration;
-  uint8_t alterante_settings[USB_DEV_MAX_INTERFACES];
+  uint8_t config;
+  uint8_t alt_settings[USB_DEV_MAX_INTERFACES];
 
-  uint8_t *buf;
-  uint16_t len;
-  uint16_t remain_len;
-  uint16_t transmit_len;
+  uint8_t *ep0_buf;
+  uint16_t ep0_total_len;
+  uint16_t ep0_remain_len;
+  uint16_t ep0_packet_len;
 } USB_DeviceHandleTypeDef;
 
 #endif /* __USBD_CORE_H */
