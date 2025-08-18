@@ -51,12 +51,15 @@
 #define USB_STATE_ADDRESS    1
 #define USB_STATE_CONFIGURED 2
 
-#define USB_DEVICE_FEATURE_REMOTE_WAKEUP 1
+#define USB_FEATURE_DEVICE_REMOTE_WAKEUP 1
+#define USB_FEATURE_ENDPOINT_HALT        0
 
-#define USB_DEVICE_STATUS_REMOTE_WAKEUP_MASK 0x02U
+#define USB_DEVICE_STATUS_REMOTE_WAKEUP_MASK 0x0002U
+#define USB_ENDPOINT_STATUS_HALT_MASK        0x0001U
 
-#define USB_DEV_MAX_INTERFACES     2U
 #define USB_DEV_MAX_CONFIGURATIONS 1U
+#define USB_DEV_MAX_INTERFACES     2U
+#define USB_DEV_MAX_ENDPOINTS      2U
 
 typedef struct usb_setup_req {
   uint8_t bmRequestType;
@@ -74,10 +77,11 @@ typedef struct usb_setup_req {
 
 typedef struct usb_device_handle {
   uint8_t state;
-  uint16_t dev_status;
+  uint16_t device_status;
+  uint16_t endpoint_status[USB_DEV_MAX_ENDPOINTS];
   uint8_t address;
   uint8_t configuration;
-  uint8_t alt_settings[USB_DEV_MAX_INTERFACES];
+  uint8_t alterante_settings[USB_DEV_MAX_INTERFACES];
 
   uint8_t *buf;
   uint16_t len;
