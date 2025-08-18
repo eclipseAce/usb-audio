@@ -18,15 +18,15 @@ __ALIGN_BEGIN uint8_t DeviceDescriptor[18] __ALIGN_END = {
   0x01,                     /* bNumConfigurations */
 };
 
-__ALIGN_BEGIN uint8_t ConfigDescriptor[119] __ALIGN_END = {
+__ALIGN_BEGIN uint8_t ConfigDescriptor[118] __ALIGN_END = {
   /* Standard Configuration Descriptor */
   0x09,                     /* bLength */
   0x02,                     /* bDescriptorType = CONFIGURATION */
-  0x77, 0x00,               /* wTotalLength */
+  0x76, 0x00,               /* wTotalLength */
   0x02,                     /* bNumInterfaces */
   0x01,                     /* bConfigurationValue */
   0x00,                     /* iConfiguration */
-  0x00,                     /* bmAttributes */
+  0xC0,                     /* bmAttributes */
   0xF4,                     /* MaxPower */
   
   /* Standard AC Interface Descriptor */
@@ -45,7 +45,7 @@ __ALIGN_BEGIN uint8_t ConfigDescriptor[119] __ALIGN_END = {
   0x24,                     /* bDescriptorType = INTERFACE */
   0x01,                     /* bDescriptorSubtype = HEADER */
   0x00, 0x01,               /* bcdADC */
-  0x29, 0x00,               /* wTotalLength */
+  0x27, 0x00,               /* wTotalLength */
   0x01,                     /* bInCollection */
   0x01,                     /* baInterfaceNr */
   
@@ -56,21 +56,20 @@ __ALIGN_BEGIN uint8_t ConfigDescriptor[119] __ALIGN_END = {
   0x01,                     /* bTerminalID */
   0x01, 0x01,               /* wTerminalType = STREAMING */
   0x00,                     /* bAssocTerminal */
-  0x02,                     /* bNrChannels */
-  0x03, 0x00,               /* wChannelConfig */
+  0x01,                     /* bNrChannels */
+  0x00, 0x00,               /* wChannelConfig */
   0x00,                     /* iChannelNames */
   0x00,                     /* iTerminal */
   
   /* Feature Unit Descriptor */
-  0x0B,                     /* bLength */
+  0x09,                     /* bLength */
   0x24,                     /* bDescriptorType = INTERFACE */
   0x06,                     /* bDescriptorSubtype = FEATURE_UNIT */
   0x02,                     /* bUnitID */
-  0x01, 0x00,               /* bSourceID */
+  0x01,                     /* bSourceID */
   0x01,                     /* bControlSize */
-  0x03,                     /* bmaControls[0] */
+  0x00,                     /* bmaControls[0] */
   0x00,                     /* bmaControls[1] */
-  0x00,                     /* bmaControls[2] */
   0x00,                     /* iFeature */
   
   /* Output Terminal Descriptor */
@@ -106,12 +105,12 @@ __ALIGN_BEGIN uint8_t ConfigDescriptor[119] __ALIGN_END = {
   0x00,                     /* iInterface */
   
   /* Class-Specific AS Interface Descriptor */
-  0x06,                     /* bLength */
+  0x07,                     /* bLength */
   0x24,                     /* bDescriptorType = INTERFACE */
   0x01,                     /* bDescriptorSubtype = AS_GENERAL */
   0x01,                     /* bTerminalLink */
   0x01,                     /* bDelay */
-  0x01,                     /* wFormatTag = PCM */
+  0x01, 0x00,               /* wFormatTag = PCM */
   
   /* Class-Specific AS Format Type Descriptor (Type I) */
   0x0B,                     /* bLength */
@@ -201,8 +200,8 @@ __ALIGN_BEGIN uint8_t StringDescriptor_1[24] __ALIGN_END = {
   0x6F, 0x00,               /* bString[10] */
 };
 
-__ALIGN_BEGIN uint8_t StringDescriptor_2[64] __ALIGN_END = {
-  /* String Descriptor of "1234567890124" */
+__ALIGN_BEGIN uint8_t StringDescriptor_2[28] __ALIGN_END = {
+  /* String Descriptor of "1234567890123" */
   0x1C,                     /* bLength */
   0x03,                     /* bDescriptorType = STRING */
   0x31, 0x00,               /* bString[0] */
@@ -217,37 +216,5 @@ __ALIGN_BEGIN uint8_t StringDescriptor_2[64] __ALIGN_END = {
   0x30, 0x00,               /* bString[9] */
   0x31, 0x00,               /* bString[10] */
   0x32, 0x00,               /* bString[11] */
-  0x34, 0x00,               /* bString[12] */
-  0x34, 0x00,               /* bString[12] */
-  0x34, 0x00,               /* bString[12] */
-  0x34, 0x00,               /* bString[12] */
-  0x34, 0x00,               /* bString[12] */
-  0x34, 0x00,               /* bString[12] */
-  0x34, 0x00,               /* bString[12] */
-  0x34, 0x00,               /* bString[12] */
-  0x34, 0x00,               /* bString[12] */
-  0x34, 0x00,               /* bString[12] */
-  0x34, 0x00,               /* bString[12] */
-  0x34, 0x00,               /* bString[12] */
-  0x34, 0x00,               /* bString[12] */
-  0x34, 0x00,               /* bString[12] */
-  0x34, 0x00,               /* bString[12] */
-  0x34, 0x00,               /* bString[12] */
-  0x34, 0x00,               /* bString[12] */
-  0x34, 0x00,               /* bString[12] */
-  0x34, 0x00,               /* bString[12] */
-};
-
-uint8_t *StringDescriptorPtr[USB_MAX_STRING_DESCRIPTORS] = {
-  LangCodesDescriptor,
-  StringDescriptor_0,
-  StringDescriptor_1,
-  StringDescriptor_2,
-};
-
-uint16_t StringDescriptorLen[USB_MAX_STRING_DESCRIPTORS] = {
-  4,
-  38,
-  24,
-  64,
+  0x33, 0x00,               /* bString[12] */
 };

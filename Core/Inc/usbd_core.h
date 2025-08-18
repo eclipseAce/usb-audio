@@ -63,6 +63,20 @@
 
 #define USB_EP0_MAX_PACKET 64U
 
+#define USB_AUDIO_REQ_SET_CUR 0x01U
+#define USB_AUDIO_REQ_SET_MIN 0x02U
+#define USB_AUDIO_REQ_SET_MAX 0x03U
+#define USB_AUDIO_REQ_SET_RES 0x04U
+#define USB_AUDIO_REQ_GET_CUR 0x81U
+#define USB_AUDIO_REQ_GET_MIN 0x82U
+#define USB_AUDIO_REQ_GET_MAX 0x83U
+#define USB_AUDIO_REQ_GET_RES 0x84U
+
+#define USB_AUDIO_FREQ        48000U
+#define USB_AUDIO_OUT_BITRES  16U
+#define USB_AUDIO_OUT_PACKET  (uint16_t)(((USB_AUDIO_FREQ / 1000U) * (USB_AUDIO_OUT_BITRES / 2) * 2U))
+#define USB_AUDIO_BUFFER_SIZE (uint16_t)(USB_AUDIO_OUT_PACKET * 8)
+
 typedef struct usb_setup_req {
   uint8_t bmRequestType;
   uint8_t bRequest;
@@ -89,6 +103,12 @@ typedef struct usb_device_handle {
   uint16_t ep0_total_len;
   uint16_t ep0_remain_len;
   uint16_t ep0_packet_len;
+
+  
+  uint8_t audio_buf[USB_AUDIO_BUFFER_SIZE];
+  uint8_t audio_packet[USB_AUDIO_OUT_PACKET];
+  uint16_t audio_rd_ptr;
+  uint16_t audio_wr_ptr;
 } USB_DeviceHandleTypeDef;
 
 #endif /* __USBD_CORE_H */

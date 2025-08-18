@@ -257,8 +257,8 @@ config_descriptor = Descriptor(
                                 Field(1, "bTerminalID", 1),
                                 Field(2, "wTerminalType", USBTerminalTypes.STREAMING),
                                 Field(1, "bAssocTerminal", 0),
-                                Field(1, "bNrChannels", 2),
-                                Field(2, "wChannelConfig", 0x0003),
+                                Field(1, "bNrChannels", 1),
+                                Field(2, "wChannelConfig", 0x0000),
                                 Field(1, "iChannelNames", 0),
                                 Field(1, "iTerminal", 0),
                             ],
@@ -270,9 +270,9 @@ config_descriptor = Descriptor(
                                 Field(1, "bDescriptorType", AudioDescriptorTypes.INTERFACE),
                                 Field(1, "bDescriptorSubtype", AudioControlInterfaceDescriptorSubTypes.FEATURE_UNIT),
                                 Field(1, "bUnitID", 2),
-                                Field(2, "bSourceID", 1),
+                                Field(1, "bSourceID", 1),
                                 Field(1, "bControlSize", 1),
-                                Field(1, "bmaControls", [0x03, 0x00, 0x00]),
+                                Field(1, "bmaControls", [0x00, 0x00]),
                                 Field(1, "iFeature", 0),
                             ],
                         ),
@@ -329,7 +329,7 @@ config_descriptor = Descriptor(
                         Field(1, "bDescriptorSubtype", AudioStreamingInterfaceDescriptorSubTypes.AS_GENERAL),
                         Field(1, "bTerminalLink", 1),
                         Field(1, "bDelay", 1),
-                        Field(1, "wFormatTag", AudioDataFormatTypeICodes.PCM),
+                        Field(2, "wFormatTag", AudioDataFormatTypeICodes.PCM),
                     ],
                     children=[
                         Descriptor(
@@ -415,14 +415,6 @@ with open('./Core/Src/usbd_desc.c', 'w') as file:
     for name, descriptor in descriptors:
         lines.append("")
         lines += descriptor.generate_declaration(name)
-    
-    n_strings = len(string_allocator.strings)
-    lines.append(f'uint8_t *StringDescriptors[{n_strings+1}] = {{')
-    lines.append(f'  LangCodesDescriptor,')
-    for index in range(n_strings):
-        lines.append(f'  StringDescriptor_{index},')
-    lines.append('};')
-
     file.write("\n".join(lines))
 
 with open('./Core/Inc/usbd_desc.h', 'w') as file:
@@ -432,5 +424,4 @@ with open('./Core/Inc/usbd_desc.h', 'w') as file:
         lines.append("")
         lines.append(f'extern {descriptor.generate_prototype(name)};')
     lines.append("")
-    lines.append(f'extern uint8_t *StringDescriptors[{len(string_allocator.strings)+1}];')
     file.write("\n".join(lines))
