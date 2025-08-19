@@ -300,7 +300,7 @@ static void USB_HandleClassRequest(PCD_HandleTypeDef *hpcd) {
 
   switch (setup->bmRequestType & USB_REQ_RECIPIENT_MASK) {
     case USB_REQ_RECIPIENT_INTERFACE:
-      if (setup->wIndexL == 1U && setup->wIndexH == 2U) {
+      if (setup->wIndexL == 0U && setup->wIndexH == 2U) {
         switch (setup->wValueH) {
           case USB_AUDIO_CS_MUTE_CONTROL:
             switch (setup->bRequest) {
@@ -332,6 +332,7 @@ static void USB_HandleClassRequest(PCD_HandleTypeDef *hpcd) {
                 } else {
                   USB_EP0_SetStall(hpcd);
                 }
+                break;
 
               default:
                 USB_EP0_SetStall(hpcd);
@@ -367,7 +368,7 @@ void HAL_PCD_SetupStageCallback(PCD_HandleTypeDef *hpcd) {
       break;
 
     case USB_REQ_TYPE_CLASS:
-      USB_EP0_SetStall(hpcd);
+      USB_HandleClassRequest(hpcd);
       break;
 
     case USB_REQ_TYPE_VENDOR:

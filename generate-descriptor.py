@@ -272,7 +272,7 @@ config_descriptor = Descriptor(
                                 Field(1, "bUnitID", 2),
                                 Field(1, "bSourceID", 1),
                                 Field(1, "bControlSize", 1),
-                                Field(1, "bmaControls", [0x00, 0x00]),
+                                Field(1, "bmaControls", [0x01, 0x00]),
                                 Field(1, "iFeature", 0),
                             ],
                         ),

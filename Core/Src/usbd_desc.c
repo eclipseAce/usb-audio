@@ -68,7 +68,7 @@ __ALIGN_BEGIN uint8_t ConfigDescriptor[118] __ALIGN_END = {
   0x02,                     /* bUnitID */
   0x01,                     /* bSourceID */
   0x01,                     /* bControlSize */
-  0x00,                     /* bmaControls[0] */
+  0x01,                     /* bmaControls[0] */
   0x00,                     /* bmaControls[1] */
   0x00,                     /* iFeature */
   
