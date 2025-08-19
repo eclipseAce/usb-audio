@@ -11,7 +11,7 @@ __ALIGN_BEGIN uint8_t DeviceDescriptor[18] __ALIGN_END = {
   0x40,                     /* bMaxPacketSize0 */
   0x83, 0x04,               /* idVendor */
   0x40, 0x57,               /* idProduct */
-  0x00, 0x01,               /* bcdDevice */
+  0x00, 0x02,               /* bcdDevice */
   0x01,                     /* iManufacturer = "STMicroelectronics" */
   0x02,                     /* iProduct = "STM32 Audio" */
   0x03,                     /* iSerialNumber = "1234567890123" */
