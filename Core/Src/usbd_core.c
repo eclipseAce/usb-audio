@@ -24,14 +24,14 @@ static void USB_EP0_SetStall(PCD_HandleTypeDef *hpcd) {
   HAL_PCD_EP_SetStall(hpcd, 0x80);
 }
 
-static void USB_HandleStandardRequest(PCD_HandleTypeDef *hpcd) {
+static void USB_HandleStandardRequest(PCD_HandleTypeDef *hpcd, uint8_t callback) {
   USB_DeviceHandleTypeDef *hdev = (USB_DeviceHandleTypeDef *)hpcd->pData;
   USB_SetupReqTypeDef *setup = (USB_SetupReqTypeDef *)hpcd->Setup;
 
   switch (setup->bmRequestType & USB_REQ_RECIPIENT_MASK) {
-    case USB_REQ_RECIPIENT_DEVICE:
+    case USB_REQ_RECIPIENT_DEVICE: {
       switch (setup->bRequest) {
-        case USB_REQ_CLEAR_FEATURE:
+        case USB_REQ_CLEAR_FEATURE: {
           if (hdev->state != USB_STATE_DEFAULT                     /* not in default mode */
               && setup->wValue == USB_FEATURE_DEVICE_REMOTE_WAKEUP /* wValue == DEVICE_REMOTE_WAKEUP */
               && setup->wIndex == 0                                /* wIndex == 0 */
@@ -43,9 +43,9 @@ static void USB_HandleStandardRequest(PCD_HandleTypeDef *hpcd) {
           } else {
             USB_EP0_SetStall(hpcd);
           }
-          break;
+        } break;
 
-        case USB_REQ_GET_CONFIGURATION:
+        case USB_REQ_GET_CONFIGURATION: {
           if (hdev->state != USB_STATE_DEFAULT /* not in default mode */
               && setup->wValue == 0            /* wValue == 0 */
               && setup->wIndex == 0            /* wIndex == 0 */
@@ -55,45 +55,49 @@ static void USB_HandleStandardRequest(PCD_HandleTypeDef *hpcd) {
           } else {
             USB_EP0_SetStall(hpcd);
           }
-          break;
+        } break;
 
-        case USB_REQ_GET_DESCRIPTOR:
+        case USB_REQ_GET_DESCRIPTOR: {
           switch (setup->wValueH) {
-            case USB_DESC_TYPE_DEVICE:
+            case USB_DESC_TYPE_DEVICE: {
               USB_EP0_Transmit(hpcd, DeviceDescriptor, MIN(setup->wLength, sizeof(DeviceDescriptor)));
-              break;
+            } break;
 
-            case USB_DESC_TYPE_CONFIGURATION:
+            case USB_DESC_TYPE_CONFIGURATION: {
               USB_EP0_Transmit(hpcd, ConfigDescriptor, MIN(setup->wLength, sizeof(ConfigDescriptor)));
-              break;
+            } break;
 
-            case USB_DESC_TYPE_STRING:
+            case USB_DESC_TYPE_STRING: {
               switch (setup->wValueL) {
-                case 0:
+                case 0: {
                   USB_EP0_Transmit(hpcd, LangCodesDescriptor, MIN(setup->wLength, sizeof(LangCodesDescriptor)));
-                  break;
-                case 1:
+                } break;
+
+                case 1: {
                   USB_EP0_Transmit(hpcd, StringDescriptor_0, MIN(setup->wLength, sizeof(StringDescriptor_0)));
-                  break;
-                case 2:
+                } break;
+
+                case 2: {
                   USB_EP0_Transmit(hpcd, StringDescriptor_1, MIN(setup->wLength, sizeof(StringDescriptor_1)));
-                  break;
-                case 3:
+                } break;
+
+                case 3: {
                   USB_EP0_Transmit(hpcd, StringDescriptor_2, MIN(setup->wLength, sizeof(StringDescriptor_2)));
-                  break;
-                default:
+                } break;
+
+                default: {
                   USB_EP0_SetStall(hpcd);
-                  break;
+                } break;
               }
-              break;
+            } break;
 
-            default:
+            default: {
               USB_EP0_SetStall(hpcd);
-              break;
+            } break;
           }
-          break;
+        } break;
 
-        case USB_REQ_GET_STATUS:
+        case USB_REQ_GET_STATUS: {
           if (hdev->state != USB_STATE_DEFAULT /* not in default mode */
               && setup->wValue == 0            /* wValue == 0 */
               && setup->wIndex == 0            /* wIndex == 0 */
@@ -103,9 +107,9 @@ static void USB_HandleStandardRequest(PCD_HandleTypeDef *hpcd) {
           } else {
             USB_EP0_SetStall(hpcd);
           }
-          break;
+        } break;
 
-        case USB_REQ_SET_ADDRESS:
+        case USB_REQ_SET_ADDRESS: {
           if (hdev->state != USB_STATE_CONFIGURED /* device is not in configured mode */
               && setup->wValue <= 127             /* wValue <= 127 */
               && setup->wIndex == 0               /* wIndex == 0 */
@@ -118,9 +122,9 @@ static void USB_HandleStandardRequest(PCD_HandleTypeDef *hpcd) {
           } else {
             USB_EP0_SetStall(hpcd);
           }
-          break;
+        } break;
 
-        case USB_REQ_SET_CONFIGURATION:
+        case USB_REQ_SET_CONFIGURATION: {
           if (hdev->state != USB_STATE_DEFAULT                /* not in default mode */
               && setup->wValueH == 0                          /* wValueH == 0 */
               && setup->wValueL <= USB_DEV_MAX_CONFIGURATIONS /* configuration value (wValueL) exists */
@@ -133,13 +137,13 @@ static void USB_HandleStandardRequest(PCD_HandleTypeDef *hpcd) {
           } else {
             USB_EP0_SetStall(hpcd);
           }
-          break;
+        } break;
 
-        case USB_REQ_SET_DESCRIPTOR:
+        case USB_REQ_SET_DESCRIPTOR: {
           USB_EP0_SetStall(hpcd);
-          break;
+        } break;
 
-        case USB_REQ_SET_FEATURE:
+        case USB_REQ_SET_FEATURE: {
           if (hdev->state != USB_STATE_DEFAULT                     /* not in default mode */
               && setup->wValue == USB_FEATURE_DEVICE_REMOTE_WAKEUP /* wValue == DEVICE_REMOTE_WAKEUP */
               && setup->wIndex == 0                                /* wIndex == 0 */
@@ -151,21 +155,21 @@ static void USB_HandleStandardRequest(PCD_HandleTypeDef *hpcd) {
           } else {
             USB_EP0_SetStall(hpcd);
           }
-          break;
+        } break;
 
-        default:
+        default: {
           USB_EP0_SetStall(hpcd);
-          break;
+        } break;
       }
-      break;
+    } break;
 
-    case USB_REQ_RECIPIENT_INTERFACE:
+    case USB_REQ_RECIPIENT_INTERFACE: {
       switch (setup->bRequest) {
-        case USB_REQ_CLEAR_FEATURE:
+        case USB_REQ_CLEAR_FEATURE: {
           USB_EP0_SetStall(hpcd);
-          break;
+        } break;
 
-        case USB_REQ_GET_INTERFACE:
+        case USB_REQ_GET_INTERFACE: {
           if (hdev->state == USB_STATE_CONFIGURED       /* is in configured mode */
               && setup->wIndex < USB_DEV_MAX_INTERFACES /* interface number (wIndex) is valid */
               && setup->wValue == 0                     /* wValue == 0 */
@@ -175,9 +179,9 @@ static void USB_HandleStandardRequest(PCD_HandleTypeDef *hpcd) {
           } else {
             USB_EP0_SetStall(hpcd);
           }
-          break;
+        } break;
 
-        case USB_REQ_GET_STATUS:
+        case USB_REQ_GET_STATUS: {
           if (hdev->state == USB_STATE_CONFIGURED       /* is in configured mode */
               && setup->wIndex < USB_DEV_MAX_INTERFACES /* interface number (wIndex) is valid */
               && setup->wValue == 0                     /* wValue == 0 */
@@ -188,13 +192,13 @@ static void USB_HandleStandardRequest(PCD_HandleTypeDef *hpcd) {
           } else {
             USB_EP0_SetStall(hpcd);
           }
-          break;
+        } break;
 
-        case USB_REQ_SET_FEATURE:
+        case USB_REQ_SET_FEATURE: {
           USB_EP0_SetStall(hpcd);
-          break;
+        } break;
 
-        case USB_REQ_SET_INTERFACE:
+        case USB_REQ_SET_INTERFACE: {
           if (hdev->state == USB_STATE_CONFIGURED       /* is in configured mode */
               && setup->wLength == 0                    /* wLength == 1 */
               && setup->wIndex < USB_DEV_MAX_INTERFACES /* interface number is valid */
@@ -218,17 +222,17 @@ static void USB_HandleStandardRequest(PCD_HandleTypeDef *hpcd) {
           } else {
             USB_EP0_SetStall(hpcd);
           }
-          break;
+        } break;
 
-        default:
+        default: {
           USB_EP0_SetStall(hpcd);
-          break;
+        } break;
       }
-      break;
+    } break;
 
-    case USB_REQ_RECIPIENT_ENDPOINT:
+    case USB_REQ_RECIPIENT_ENDPOINT: {
       switch (setup->bRequest) {
-        case USB_REQ_CLEAR_FEATURE:
+        case USB_REQ_CLEAR_FEATURE: {
           if (hdev->state != USB_STATE_DEFAULT                             /* not in default mode */
               && setup->wValue == USB_FEATURE_ENDPOINT_HALT                /* wValue == ENDPOINT_HALT */
               && setup->wIndex < USB_DEV_MAX_ENDPOINTS                     /* endpoint number (wIndex) is valid */
@@ -242,9 +246,9 @@ static void USB_HandleStandardRequest(PCD_HandleTypeDef *hpcd) {
           } else {
             USB_EP0_SetStall(hpcd);
           }
-          break;
+        } break;
 
-        case USB_REQ_GET_STATUS:
+        case USB_REQ_GET_STATUS: {
           if (hdev->state != USB_STATE_DEFAULT                             /* not in default mode */
               && setup->wValue == 0                                        /* wValue == 0 */
               && setup->wIndex < USB_DEV_MAX_ENDPOINTS                     /* endpoint number (wIndex) is valid */
@@ -255,9 +259,9 @@ static void USB_HandleStandardRequest(PCD_HandleTypeDef *hpcd) {
           } else {
             USB_EP0_SetStall(hpcd);
           }
-          break;
+        } break;
 
-        case USB_REQ_SET_FEATURE:
+        case USB_REQ_SET_FEATURE: {
           if (hdev->state != USB_STATE_DEFAULT                             /* not in default mode */
               && setup->wValue == USB_FEATURE_ENDPOINT_HALT                /* wValue == ENDPOINT_HALT */
               && setup->wIndex < USB_DEV_MAX_ENDPOINTS                     /* endpoint number (wIndex) is valid */
@@ -271,91 +275,72 @@ static void USB_HandleStandardRequest(PCD_HandleTypeDef *hpcd) {
           } else {
             USB_EP0_SetStall(hpcd);
           }
-          break;
+        } break;
 
-        case USB_REQ_SYNCH_FRAME:
+        case USB_REQ_SYNCH_FRAME: {
           USB_EP0_SetStall(hpcd);
-          break;
+        } break;
 
-        default:
+        default: {
           USB_EP0_SetStall(hpcd);
-          break;
+        } break;
       }
-      break;
+    } break;
 
-    default:
+    default: {
       USB_EP0_SetStall(hpcd);
-      break;
+    } break;
   }
 }
 
-static void USB_HandleClassRequest(PCD_HandleTypeDef *hpcd) {
+static void USB_HandleAudioClassRequest(PCD_HandleTypeDef *hpcd, uint8_t callback) {
   USB_DeviceHandleTypeDef *hdev = (USB_DeviceHandleTypeDef *)hpcd->pData;
   USB_SetupReqTypeDef *setup = (USB_SetupReqTypeDef *)hpcd->Setup;
 
-  if ((setup->bmRequestType & USB_REQ_RECIPIENT_MASK) != USB_REQ_RECIPIENT_INTERFACE) {
-    USB_EP0_SetStall(hpcd);
-    return;
-  }
-
   switch (setup->bmRequestType & USB_REQ_RECIPIENT_MASK) {
-    case USB_REQ_RECIPIENT_INTERFACE:
-      if (setup->wIndexL == 0U && setup->wIndexH == 2U) {
+    case USB_REQ_RECIPIENT_INTERFACE: {
+      if (setup->wIndexL == 0     /* interface number (wIndexL) == 0 (AudioControl) */
+          && setup->wIndexH == 2U /* unit id == 2 (Feature Unit) */
+          && setup->wValueL == 0  /* master channel */
+          && setup->wLength == 1U /* wLength == 1 */
+      ) {
         switch (setup->wValueH) {
-          case USB_AUDIO_CS_MUTE_CONTROL:
+          case USB_AUDIO_CS_MUTE_CONTROL: {
             switch (setup->bRequest) {
-              case USB_AUDIO_REQ_SET_CUR:
-                HAL_PCD_EP_Receive(hpcd, 0x00, hdev->setup_buf, 1U);
-                break;
-
-              case USB_AUDIO_REQ_GET_CUR:
-              case USB_AUDIO_REQ_GET_MIN:
-              case USB_AUDIO_REQ_GET_MAX:
-              case USB_AUDIO_REQ_GET_RES:
-                if (setup->wValueL == 0) {
-                  uint8_t value;
-                  switch (setup->bRequest) {
-                    case USB_AUDIO_REQ_GET_CUR:
-                      value = hdev->audio_mute;
-                      break;
-                    case USB_AUDIO_REQ_GET_MIN:
-                      value = 0;
-                      break;
-                    case USB_AUDIO_REQ_GET_MAX:
-                      value = 1;
-                      break;
-                    case USB_AUDIO_REQ_GET_RES:
-                      value = 1;
-                      break;
-                  }
-                  USB_EP0_Transmit(hpcd, &value, 1);
+              case USB_AUDIO_REQ_SET_CUR: {
+                if (callback != 0) {
+                  /* TODO: Mute */
                 } else {
-                  USB_EP0_SetStall(hpcd);
+                  HAL_PCD_EP_Receive(hpcd, 0x00, &hdev->audio_mute, 1U);
                 }
-                break;
+              } break;
 
-              default:
+              case USB_AUDIO_REQ_GET_CUR: {
+                USB_EP0_Transmit(hpcd, &hdev->audio_mute, 1U);
+              } break;
+
+              default: {
                 USB_EP0_SetStall(hpcd);
-                break;
+              } break;
             }
-            break;
+          } break;
 
-          default:
+          case USB_AUDIO_CS_VOLUME_CONTROL: {
             USB_EP0_SetStall(hpcd);
-            break;
+          } break;
+
+          default: {
+            USB_EP0_SetStall(hpcd);
+          } break;
         }
       } else {
         USB_EP0_SetStall(hpcd);
       }
-      break;
+    } break;
 
-    case USB_REQ_RECIPIENT_ENDPOINT:
+    default: {
       USB_EP0_SetStall(hpcd);
-      break;
-
-    default:
-      USB_EP0_SetStall(hpcd);
-      break;
+    } break;
   }
 }
 
@@ -363,27 +348,28 @@ void HAL_PCD_SetupStageCallback(PCD_HandleTypeDef *hpcd) {
   USB_SetupReqTypeDef *setup = (USB_SetupReqTypeDef *)hpcd->Setup;
 
   switch (setup->bmRequestType & USB_REQ_TYPE_MASK) {
-    case USB_REQ_TYPE_STANDARD:
-      USB_HandleStandardRequest(hpcd);
-      break;
+    case USB_REQ_TYPE_STANDARD: {
+      USB_HandleStandardRequest(hpcd, 0);
+    } break;
 
-    case USB_REQ_TYPE_CLASS:
-      USB_HandleClassRequest(hpcd);
-      break;
+    case USB_REQ_TYPE_CLASS: {
+      USB_HandleAudioClassRequest(hpcd, 0);
+    } break;
 
-    case USB_REQ_TYPE_VENDOR:
+    case USB_REQ_TYPE_VENDOR: {
       USB_EP0_SetStall(hpcd);
-      break;
+    } break;
 
-    default:
+    default: {
       USB_EP0_SetStall(hpcd);
-      break;
+    } break;
   }
 }
 
 void HAL_PCD_DataOutStageCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum) {
   USB_DeviceHandleTypeDef *hdev = (USB_DeviceHandleTypeDef *)hpcd->pData;
   if ((epnum & 0x0FU) == 0x00) {
+    USB_HandleAudioClassRequest(hpcd, 1U);
   } else {
     uint16_t rx_count = (uint16_t)HAL_PCD_EP_GetRxCount(hpcd, 0x01);
     uint16_t writable = USB_AUDIO_BUFFER_SIZE - hdev->audio_wr_ptr;

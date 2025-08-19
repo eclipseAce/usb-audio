@@ -102,7 +102,6 @@ typedef struct usb_setup_req {
 
 typedef struct usb_device_handle {
   USB_SetupReqTypeDef setup;
-  uint8_t setup_buf[4];
   
   uint8_t state;
   uint16_t status;
